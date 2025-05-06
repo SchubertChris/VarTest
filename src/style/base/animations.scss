@@ -1,4 +1,4 @@
-@use 'variables';
+@use 'variables' as vars;
 
 // Fade In Animation
 @keyframes fadeIn {
@@ -127,7 +127,7 @@
 @mixin scroll-fade-in {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity map-get($transitions, very-slow), transform map-get($transitions, very-slow);
+  transition: opacity map-get(vars.$transitions, very-slow), transform map-get(vars.$transitions, very-slow);
   
   &.visible {
     opacity: 1;

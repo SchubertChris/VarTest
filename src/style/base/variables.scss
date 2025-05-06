@@ -63,21 +63,31 @@ $colors: (
   )
 );
 
-// Gradient-Definitionen
+// Moderne Sass-Funktion für den Zugriff auf verschachtelte Maps
+@function color($theme, $color) {
+  @return map.get(map.get($colors, $theme), $color);
+}
+
+// Gradient-Definitionen mit modernen Funktionen
 $gradients: (
   dark: (
-    primary: linear-gradient(to right, map-get(map-get($colors, dark), accent-green), map-get(map-get($colors, dark), accent-teal)),
-    button: linear-gradient(45deg, map-get(map-get($colors, dark), accent-green), map-get(map-get($colors, dark), accent-teal)),
-    nav-active: linear-gradient(135deg, map-get(map-get($colors, dark), accent-green), map-get(map-get($colors, dark), accent-teal)),
-    header: linear-gradient(to right, map-get(map-get($colors, dark), accent-green), map-get(map-get($colors, dark), accent-teal), map-get(map-get($colors, dark), accent-lime))
+    primary: linear-gradient(to right, color('dark', 'accent-green'), color('dark', 'accent-teal')),
+    button: linear-gradient(45deg, color('dark', 'accent-green'), color('dark', 'accent-teal')),
+    nav-active: linear-gradient(135deg, color('dark', 'accent-green'), color('dark', 'accent-teal')),
+    header: linear-gradient(to right, color('dark', 'accent-green'), color('dark', 'accent-teal'), color('dark', 'accent-lime'))
   ),
   light: (
-    primary: linear-gradient(to right, map-get(map-get($colors, light), accent-green), map-get(map-get($colors, light), accent-teal)),
-    button: linear-gradient(45deg, map-get(map-get($colors, light), accent-green), map-get(map-get($colors, light), accent-teal)),
-    nav-active: linear-gradient(135deg, map-get(map-get($colors, light), accent-green), map-get(map-get($colors, light), accent-teal)),
-    header: linear-gradient(to right, map-get(map-get($colors, light), accent-green), map-get(map-get($colors, light), accent-teal), map-get(map-get($colors, light), accent-lime))
+    primary: linear-gradient(to right, color('light', 'accent-green'), color('light', 'accent-teal')),
+    button: linear-gradient(45deg, color('light', 'accent-green'), color('light', 'accent-teal')),
+    nav-active: linear-gradient(135deg, color('light', 'accent-green'), color('light', 'accent-teal')),
+    header: linear-gradient(to right, color('light', 'accent-green'), color('light', 'accent-teal'), color('light', 'accent-lime'))
   )
 );
+
+// Moderne Sass-Funktion für den Zugriff auf Gradienten
+@function gradient($theme, $name) {
+  @return map.get(map.get($gradients, $theme), $name);
+}
 
 // Typografie
 $fonts: (

@@ -1,7 +1,7 @@
 <template>
   <div class="landing-page" :class="{ 'theme-light': isLightTheme, 'theme-dark': !isLightTheme }">
     <!-- Blätter-Animation -->
-    <div class="leaves"></div>
+    <div class="leaves" ref="leavesContainer"></div>
     
     <div class="container">
       <header>
@@ -21,7 +21,12 @@
         </div>
       </div>
       
-      <section class="section" v-for="(section, index) in sections" :key="index" ref="sections">
+      <section 
+        v-for="(section, index) in sections" 
+        :key="index" 
+        class="section" 
+        ref="sectionsElements"
+      >
         <h2>{{ section.title }}</h2>
         <div v-html="section.content"></div>
         
@@ -50,12 +55,12 @@
         
         <div class="subscription" v-if="section.type === 'subscription'">
           <div class="subscription-info">
-            <p>{{ section.info.text }}</p>
-            <p v-html="section.info.bulletPoints"></p>
+            <p v-if="section.info">{{ section.info.text }}</p>
+            <p v-if="section.info" v-html="section.info.bulletPoints"></p>
           </div>
           
           <div class="form-container">
-            <div class="form-group" v-for="(field, fIndex) in section.form.fields" :key="fIndex">
+            <div class="form-group" v-if="section.form && section.form.fields" v-for="(field, fIndex) in section.form.fields" :key="fIndex">
               <label :for="field.id">{{ field.label }}</label>
               <input v-if="field.type !== 'select'" :type="field.type" :id="field.id" :placeholder="field.placeholder">
               <select v-else :id="field.id">
@@ -65,7 +70,7 @@
                 </option>
               </select>
             </div>
-            <button class="btn">{{ section.form.buttonText }}</button>
+            <button class="btn" v-if="section.form">{{ section.form.buttonText }}</button>
           </div>
         </div>
         
@@ -84,14 +89,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, onMounted, nextTick } from 'vue';
 
 export default defineComponent({
   name: 'LandingPage',
   setup() {
-    const isLightTheme = ref(false);
+    const isLightTheme = ref(localStorage.getItem('theme') === 'light');
     const activeTab = ref(0);
-    const sections = ref<HTMLElement[]>([]);
+    const sectionsElements = ref<HTMLElement[]>([]);
+    const leavesContainer = ref<HTMLElement | null>(null);
     
     const tabs = [
       'Über',
@@ -101,8 +107,8 @@ export default defineComponent({
       'Über Autoren'
     ];
     
-    // Inhaltsdaten (diese könnten auch über eine API geladen werden)
-    const sectionsData = [
+    // Inhaltsdaten
+    const sections = ref([
       {
         title: 'Die Idee',
         content: `
@@ -230,16 +236,18 @@ export default defineComponent({
         },
         footnote: '* Deine Daten werden vertraulich und ausschließlich für die Zusendung des Newsletters verwendet. Du kannst dich jederzeit mit einem Klick einfach abmelden, wenn diese gegen die Bedingungen verstoßen.'
       }
-    ];
+    ]);
     
     const toggleTheme = () => {
       isLightTheme.value = !isLightTheme.value;
-      // Optional: Speichern der Präferenz im localStorage
+      // Speichern der Präferenz im localStorage
       localStorage.setItem('theme', isLightTheme.value ? 'light' : 'dark');
     };
     
-    // Blätter-Animation
+    // Verbesserte Blätter-Animation
     const createLeaf = () => {
+      if (!leavesContainer.value) return;
+      
       const leaf = document.createElement('div');
       leaf.classList.add('leaf');
       
@@ -250,37 +258,61 @@ export default defineComponent({
         "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2335CCD0' d='M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z'/%3E%3C/svg%3E"
       ];
       
-      // Zuweisung der CSS-Variablen für Animation
+      // Zufällige Werte für die Animation
       const randomX = Math.random() * 200 - 100;
-      const randomRotationStart = Math.random() * 360;
-      const randomRotationEnd = randomRotationStart + 360;
+      const randomRotation = Math.random() * 360;
       const duration = Math.random() * 10 + 5; // 5-15 Sekunden
       
-      leaf.style.setProperty('--random-x', `${randomX}px`);
-      leaf.style.setProperty('--start-rotation', `${randomRotationStart}deg`);
-      leaf.style.setProperty('--end-rotation', `${randomRotationEnd}deg`);
-      leaf.style.setProperty('--duration', `${duration}s`);
-      
+      // Direktes Styling anwenden
+      leaf.style.position = 'absolute';
+      leaf.style.width = '20px';
+      leaf.style.height = '20px';
       leaf.style.backgroundImage = `url(${leafTypes[Math.floor(Math.random() * leafTypes.length)]})`;
+      leaf.style.backgroundSize = 'contain';
+      leaf.style.backgroundRepeat = 'no-repeat';
+      leaf.style.opacity = '0';
       leaf.style.top = '-30px';
-      leaf.style.left = `${Math.random() * 100}vw`;
+      leaf.style.left = `${Math.random() * 100}%`;
       
-      document.querySelector('.leaves')?.appendChild(leaf);
+      // Animations-Parameter setzen
+      const uniqueId = Date.now() + Math.floor(Math.random() * 1000);
       
-      // Blatt nach Ende der Animation entfernen
+      // Animationen erstellen
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fall-${uniqueId} {
+          0% { transform: translateY(0) translateX(0); opacity: 0; }
+          10% { opacity: 0.7; }
+          90% { opacity: 0.7; }
+          100% { transform: translateY(100vh) translateX(${randomX}px); opacity: 0; }
+        }
+        
+        @keyframes rotate-${uniqueId} {
+          0% { transform: rotate(${randomRotation}deg); }
+          100% { transform: rotate(${randomRotation + 360}deg); }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Animationen anwenden
+      leaf.style.animation = `fall-${uniqueId} ${duration}s linear forwards, rotate-${uniqueId} ${duration}s linear infinite`;
+      
+      // Blatt in den DOM einfügen
+      leavesContainer.value.appendChild(leaf);
+      
+      // Blatt und Animationen nach Ende der Animation entfernen
       setTimeout(() => {
-        leaf.remove();
+        if (leaf && leaf.parentNode === leavesContainer.value) {
+          leaf.remove();
+        }
+        style.remove();
       }, duration * 1000);
     };
     
-    onMounted(() => {
-      // Theme aus localStorage laden, falls vorhanden
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) {
-        isLightTheme.value = savedTheme === 'light';
-      }
-      
+    onMounted(async () => {
       // Scroll-Animation für Sektionen
+      await nextTick();
+      
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -291,8 +323,8 @@ export default defineComponent({
         });
       }, { threshold: 0.1 });
       
-      const sectionElements = document.querySelectorAll('.section');
-      sectionElements.forEach(section => {
+      const sectionNodes = document.querySelectorAll('.section');
+      sectionNodes.forEach(section => {
         observer.observe(section);
       });
       
@@ -303,14 +335,22 @@ export default defineComponent({
       }
       
       // Blätter in Intervallen erzeugen
-      setInterval(createLeaf, 3000);
+      const leafInterval = setInterval(createLeaf, 3000);
+      
+      // Cleanup-Funktion
+      return () => {
+        clearInterval(leafInterval);
+        observer.disconnect();
+      };
     });
     
     return {
       isLightTheme,
       activeTab,
       tabs,
-      sections: sectionsData,
+      sections,
+      sectionsElements,
+      leavesContainer,
       toggleTheme
     };
   }
@@ -318,24 +358,24 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-@use '@/style/base/variables' as *;
-@use '@/style/base/mixins' as *;
-@use '@/style/base/animations' as *;
+@use '@/style/base/variables' as vars;
+@use '@/style/base/mixins' as mixins;
+@use '@/style/base/animations' as animations;
 
 // Hier kommen die spezifischen Styles für die Landing Page
 .landing-page {
   min-height: 100vh;
   
   &.theme-light {
-    background-color: theme-color('light', primary-bg);
-    color: theme-color('light', text-primary);
+    background-color: mixins.theme-color('light', primary-bg);
+    color: mixins.theme-color('light', text-primary);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%2326BB77' fill-opacity='0.2'%3E%3Cpath d='M24.37 16c.2.65.39 1.32.54 2H21.17l1.17 2.34.45.9-.24.11V28a5 5 0 0 1-2.23 8.94l-.02.06a8 8 0 0 1-7.75 6h-20a8 8 0 0 1-7.74-6l-.02-.06A5 5 0 0 1-17.45 28v-6.76l-.79-1.58-.44-.9.9-.44.63-.32H-20a23.01 23.01 0 0 1 44.37-2zm-36.82 2a1 1 0 0 0-.44.1l-3.1 1.56.89 1.79 1.31-.66a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .9 0l2.21-1.1a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .9 0l2.21-1.1a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .86.02l2.88-1.27a3 3 0 0 1 2.43 0l2.88 1.27a1 1 0 0 0 .85-.02z'/%3E%3C/g%3E%3C/svg%3E");
   }
   
   &.theme-dark {
-    background-color: theme-color('dark', primary-bg);
-    color: theme-color('dark', text-primary);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23285F42' fill-opacity='0.4'%3E%3Cpath d='M24.37 16c.2.65.39 1.32.54 2H21.17l1.17 2.34.45.9-.24.11V28a5 5 0 0 1-2.23 8.94l-.02.06a8 8 0 0 1-7.75 6h-20a8 8 0 0 1-7.74-6l-.02-.06A5 5 0 0 1-17.45 28v-6.76l-.79-1.58-.44-.9.9-.44.63-.32H-20a23.01 23.01 0 0 1 44.37-2zm-36.82 2a1 1 0 0 0-.44.1l-3.1 1.56.89 1.79 1.31-.66a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .9 0l2.21-1.1a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .9 0l2.21-1.1a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .86.02l2.88-1.27a3 3 0 0 1 2.43 0l2.88 1.27a1 1 0 0 0 .85-.02z'/%3E%3C/g%3E%3C/svg%3E");
+    background-color: mixins.theme-color('dark', primary-bg);
+    color: mixins.theme-color('dark', text-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23285F42' fill-opacity='0.4'%3E%3Cpath d='M24.37 16c.2.65.39 1.32.54 2H21.17l1.17 2.34.45.9-.24.11V28a5 5 0 0 1-2.23 8.94l-.02.06a8 8 0 0 1-7.75 6h-20a8 8 0 0 1-7.74-6l-.02-.06A5 5 0 0 1-17.45 28v-6.76l-.79-1.58-.44-.9.9-.44.63-.32H-20a23.01 23.01 0 0 1 44.37-2zm-36.82 2a1 1 0 0 0-.44.1l-3.1 1.56.891.79 1.31-.66a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .9 0l2.21-1.1a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .9 0l2.21-1.1a3 3 0 0 1 2.69 0l2.2 1.1a1 1 0 0 0 .86.02l2.88-1.27a3 3 0 0 1 2.43 0l2.88 1.27a1 1 0 0 0 .85-.02z'/%3E%3C/g%3E%3C/svg%3E");
   }
 }
 
@@ -344,28 +384,29 @@ export default defineComponent({
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  transition: all map-get($transitions, default);
+  transition: all map-get(vars.$transitions, default);
 }
 
 .container {
-  max-width: map-get($layout, max-width);
+  max-width: map-get(vars.$layout, max-width);
   margin: 0 auto;
-  padding: map-get($spacing, xl);
+  padding: map-get(vars.$spacing, xl);
 }
 
 // Layout-Komponenten
 header {
-  @include flex(row, space-between, center);
-  padding: map-get($spacing, m) 0;
-  margin-bottom: map-get($spacing, xl);
+  @include mixins.flex(row, space-between, center);
+  padding: map-get(vars.$spacing, m) 0;
+  margin-bottom: map-get(vars.$spacing, xl);
   
   .logo {
-    font-size: map-get(map-get($fonts, sizes), xxl);
-    font-weight: map-get(map-get($fonts, weights), bold);
+    font-size: map-get(map-get(vars.$fonts, sizes), xxl);
+    font-weight: map-get(map-get(vars.$fonts, weights), bold);
+    position: relative;
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        @include text-gradient('primary', $theme);
+        @include mixins.text-gradient('primary', $theme);
         
         &::after {
           content: '';
@@ -374,7 +415,7 @@ header {
           left: 0;
           width: 100%;
           height: 2px;
-          background: theme-gradient($theme, primary);
+          background: mixins.theme-gradient($theme, primary);
           border-radius: 2px;
         }
       }
@@ -382,13 +423,13 @@ header {
   }
   
   .site-name {
-    font-size: map-get(map-get($fonts, sizes), large);
+    font-size: map-get(map-get(vars.$fonts, sizes), large);
     position: relative;
     overflow: hidden;
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        color: theme-color($theme, text-secondary);
+        color: mixins.theme-color($theme, text-secondary);
         
         &::after {
           content: '';
@@ -397,8 +438,8 @@ header {
           left: -100%;
           width: 100%;
           height: 2px;
-          background: linear-gradient(to right, theme-color($theme, accent-teal), transparent);
-          @include animate(shimmer, 3s, ease, 0s, infinite);
+          background: linear-gradient(to right, mixins.theme-color($theme, accent-teal), transparent);
+          @include animations.animate(shimmer, 3s, ease, 0s, infinite);
         }
       }
     }
@@ -407,25 +448,25 @@ header {
 
 // Navigation
 .nav-tabs {
-  @include flex(row, center, center, wrap);
-  gap: map-get($spacing, m);
-  margin: map-get($spacing, xl) 0;
+  @include mixins.flex(row, center, center, wrap);
+  gap: map-get(vars.$spacing, m);
+  margin: map-get(vars.$spacing, xl) 0;
   
   .nav-tab {
     position: relative;
     overflow: hidden;
-    padding: map-get($spacing, s) map-get($spacing, xl);
-    border-radius: map-get(map-get($layout, border-radius), pill);
-    font-weight: map-get(map-get($fonts, weights), bold);
-    font-size: map-get(map-get($fonts, sizes), medium);
+    padding: map-get(vars.$spacing, s) map-get(vars.$spacing, xl);
+    border-radius: map-get(map-get(vars.$layout, border-radius), pill);
+    font-weight: map-get(map-get(vars.$fonts, weights), bold);
+    font-size: map-get(map-get(vars.$fonts, sizes), medium);
     cursor: pointer;
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        background-color: theme-color($theme, nav-item-bg);
-        color: theme-color($theme, text-primary);
-        border: 2px solid theme-color($theme, border-light);
-        @include shadow('small', $theme);
+        background-color: mixins.theme-color($theme, nav-item-bg);
+        color: mixins.theme-color($theme, text-primary);
+        border: 2px solid mixins.theme-color($theme, border-light);
+        @include mixins.shadow('small', $theme);
         
         &::before {
           content: '';
@@ -435,14 +476,14 @@ header {
           width: 100%;
           height: 100%;
           background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-          transition: left map-get($transitions, slow);
+          transition: left map-get(vars.$transitions, slow);
         }
         
         &:hover, &.active {
-          background: theme-gradient($theme, nav-active);
+          background: mixins.theme-gradient($theme, nav-active);
           color: white;
           transform: translateY(-4px);
-          @include glow('green', 'medium', $theme);
+          @include mixins.glow('green', 'medium', $theme);
           border-color: transparent;
         }
         
@@ -458,13 +499,13 @@ header {
 .section {
   position: relative;
   overflow: hidden;
-  margin-bottom: map-get($spacing, xxxl);
-  border-radius: map-get(map-get($layout, border-radius), xlarge);
-  @include scroll-fade-in;
+  margin-bottom: map-get(vars.$spacing, xxxl);
+  border-radius: map-get(map-get(vars.$layout, border-radius), xlarge);
+  @include animations.scroll-fade-in;
   
   @each $theme in ('light', 'dark') {
     .theme-#{$theme} & {
-      @include card-style($theme, 'large', false);
+      @include mixins.card-style($theme, 'large', false);
       
       &::before {
         content: '';
@@ -473,38 +514,38 @@ header {
         left: 0;
         width: 100%;
         height: 5px;
-        background: theme-gradient($theme, header);
-        border-radius: map-get(map-get($layout, border-radius), xlarge) map-get(map-get($layout, border-radius), xlarge) 0 0;
+        background: mixins.theme-gradient($theme, header);
+        border-radius: map-get(map-get(vars.$layout, border-radius), xlarge) map-get(map-get(vars.$layout, border-radius), xlarge) 0 0;
       }
     }
   }
   
   h2 {
-    font-size: map-get(map-get($fonts, sizes), xxxl);
-    font-weight: map-get(map-get($fonts, weights), extra-bold);
+    font-size: map-get(map-get(vars.$fonts, sizes), xxxl);
+    font-weight: map-get(map-get(vars.$fonts, weights), extra-bold);
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        @include section-header($theme);
+        @include mixins.section-header($theme);
       }
     }
   }
   
   p {
-    font-size: map-get(map-get($fonts, sizes), medium);
-    margin-bottom: map-get($spacing, l);
+    font-size: map-get(map-get(vars.$fonts, sizes), medium);
+    margin-bottom: map-get(vars.$spacing, l);
     line-height: 1.8;
   }
   
   .highlighted {
-    font-weight: map-get(map-get($fonts, weights), extra-bold);
+    font-weight: map-get(map-get(vars.$fonts, weights), extra-bold);
     position: relative;
     display: inline-block;
     padding: 0 4px;
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        color: theme-color($theme, accent-green);
+        color: mixins.theme-color($theme, accent-green);
         
         &::before {
           content: '';
@@ -513,7 +554,7 @@ header {
           height: 30%;
           bottom: 0;
           left: 0;
-          background-color: rgba(theme-color($theme, accent-green), 0.15);
+          background-color: rgba(mixins.theme-color($theme, accent-green), 0.15);
           z-index: -1;
           border-radius: 4px;
         }
@@ -522,11 +563,11 @@ header {
   }
   
   ul {
-    margin-left: map-get($spacing, xxl);
-    margin-bottom: map-get($spacing, l);
+    margin-left: map-get(vars.$spacing, xxl);
+    margin-bottom: map-get(vars.$spacing, l);
     
     li {
-      margin-bottom: map-get($spacing, s);
+      margin-bottom: map-get(vars.$spacing, s);
       position: relative;
       
       &::before {
@@ -541,11 +582,11 @@ header {
 
 // Content Blocks
 .content-blocks {
-  @include flex(row, space-between, stretch, wrap);
-  gap: map-get($spacing, xxl);
-  margin-top: map-get($spacing, xxl);
+  @include mixins.flex(row, space-between, stretch, wrap);
+  gap: map-get(vars.$spacing, xxl);
+  margin-top: map-get(vars.$spacing, xxl);
   
-  @include responsive('tablet') {
+  @include mixins.responsive('tablet') {
     flex-direction: column;
   }
   
@@ -556,11 +597,11 @@ header {
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        background-color: theme-color($theme, secondary-bg);
-        padding: map-get($spacing, xl);
-        border-radius: map-get(map-get($layout, border-radius), large);
-        border: 2px solid theme-color($theme, border-light);
-        @include shadow('medium', $theme);
+        background-color: mixins.theme-color($theme, secondary-bg);
+        padding: map-get(vars.$spacing, xl);
+        border-radius: map-get(map-get(vars.$layout, border-radius), large);
+        border: 2px solid mixins.theme-color($theme, border-light);
+        @include mixins.shadow('medium', $theme);
       }
     }
     
@@ -569,7 +610,7 @@ header {
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          border-top: 4px solid theme-color($theme, accent-green);
+          border-top: 4px solid mixins.theme-color($theme, accent-green);
         }
       }
     }
@@ -579,7 +620,7 @@ header {
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          border-top: 4px solid theme-color($theme, accent-teal);
+          border-top: 4px solid mixins.theme-color($theme, accent-teal);
         }
       }
     }
@@ -589,8 +630,8 @@ header {
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          @include glow('green', 'large', $theme);
-          border-color: theme-color($theme, accent-green);
+          @include mixins.glow('green', 'large', $theme);
+          border-color: mixins.theme-color($theme, accent-green);
         }
       }
     }
@@ -600,15 +641,15 @@ header {
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          @include glow('teal', 'large', $theme);
-          border-color: theme-color($theme, accent-teal);
+          @include mixins.glow('teal', 'large', $theme);
+          border-color: mixins.theme-color($theme, accent-teal);
         }
       }
     }
     
     h3 {
-      font-size: map-get(map-get($fonts, sizes), xl);
-      margin-bottom: map-get($spacing, m);
+      font-size: map-get(map-get(vars.$fonts, sizes), xl);
+      margin-bottom: map-get(vars.$spacing, m);
       position: relative;
       display: inline-block;
       
@@ -624,7 +665,7 @@ header {
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          color: theme-color($theme, text-primary);
+          color: mixins.theme-color($theme, text-primary);
         }
       }
     }
@@ -632,7 +673,7 @@ header {
     &:nth-child(1) h3::after {
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          background: theme-color($theme, accent-green);
+          background: mixins.theme-color($theme, accent-green);
         }
       }
     }
@@ -640,7 +681,7 @@ header {
     &:nth-child(2) h3::after {
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          background: theme-color($theme, accent-teal);
+          background: mixins.theme-color($theme, accent-teal);
         }
       }
     }
@@ -649,22 +690,22 @@ header {
 
 // Quiz-Container
 .quiz-container {
-  @include grid(1fr 1fr, auto, map-get($spacing, xl));
-  margin-top: map-get($spacing, xxl);
+  @include mixins.grid(1fr 1fr, auto, map-get(vars.$spacing, xl));
+  margin-top: map-get(vars.$spacing, xxl);
   
-  @include responsive('tablet') {
+  @include mixins.responsive('tablet') {
     grid-template-columns: 1fr;
   }
   
   .quiz-question {
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        background-color: theme-color($theme, secondary-bg);
-        padding: map-get($spacing, xl);
-        border-radius: map-get(map-get($layout, border-radius), large);
-        border: 2px solid theme-color($theme, border-light);
-        @include shadow('medium', $theme);
-        transition: all map-get($transitions, default);
+        background-color: mixins.theme-color($theme, secondary-bg);
+        padding: map-get(vars.$spacing, xl);
+        border-radius: map-get(map-get(vars.$layout, border-radius), large);
+        border: 2px solid mixins.theme-color($theme, border-light);
+        @include mixins.shadow('medium', $theme);
+        transition: all map-get(vars.$transitions, default);
       }
     }
     
@@ -673,8 +714,8 @@ header {
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          @include glow('green', 'medium', $theme);
-          border-color: theme-color($theme, accent-green);
+          @include mixins.glow('green', 'medium', $theme);
+          border-color: mixins.theme-color($theme, accent-green);
         }
       }
     }
@@ -684,13 +725,13 @@ header {
         @each $theme in ('light', 'dark') {
           .theme-#{$theme} & {
             @if $i == 1 {
-              border-left: 4px solid theme-color($theme, accent-green);
+              border-left: 4px solid mixins.theme-color($theme, accent-green);
             } @else if $i == 2 {
-              border-left: 4px solid theme-color($theme, accent-teal);
+              border-left: 4px solid mixins.theme-color($theme, accent-teal);
             } @else if $i == 3 {
-              border-left: 4px solid theme-color($theme, accent-lime);
+              border-left: 4px solid mixins.theme-color($theme, accent-lime);
             } @else if $i == 4 {
-              border-left: 4px solid theme-color($theme, accent-yellow);
+              border-left: 4px solid mixins.theme-color($theme, accent-yellow);
             }
           }
         }
@@ -701,11 +742,11 @@ header {
 
 // Community Profiles
 .community-profiles {
-  @include flex(row, space-between, stretch, wrap);
-  gap: map-get($spacing, l);
-  margin-top: map-get($spacing, xxl);
+  @include mixins.flex(row, space-between, stretch, wrap);
+  gap: map-get(vars.$spacing, l);
+  margin-top: map-get(vars.$spacing, xxl);
   
-  @include responsive('tablet') {
+  @include mixins.responsive('tablet') {
     flex-direction: column;
   }
   
@@ -718,11 +759,11 @@ header {
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        background-color: theme-color($theme, secondary-bg);
-        padding: map-get($spacing, xl);
-        border-radius: map-get(map-get($layout, border-radius), large);
-        border: 2px solid theme-color($theme, border-light);
-        @include shadow('medium', $theme);
+        background-color: mixins.theme-color($theme, secondary-bg);
+        padding: map-get(vars.$spacing, xl);
+        border-radius: map-get(map-get(vars.$layout, border-radius), large);
+        border: 2px solid mixins.theme-color($theme, border-light);
+        @include mixins.shadow('medium', $theme);
         
         &::before {
           content: '';
@@ -742,8 +783,8 @@ header {
         
         &:hover {
           transform: translateY(-8px) scale(1.05);
-          @include glow('green', 'medium', $theme);
-          border-color: theme-color($theme, accent-green);
+          @include mixins.glow('green', 'medium', $theme);
+          border-color: mixins.theme-color($theme, accent-green);
         }
       }
     }
@@ -751,12 +792,12 @@ header {
     .profile-icon {
       position: relative;
       z-index: 1;
-      margin: 0 auto map-get($spacing, l);
-      @include pulse;
+      margin: 0 auto map-get(vars.$spacing, l);
+      @include animations.pulse;
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          @include icon-container($theme, 'medium', 'primary');
+          @include mixins.icon-container($theme, 'medium', 'primary');
         }
       }
     }
@@ -766,19 +807,19 @@ header {
         @each $theme in ('light', 'dark') {
           .theme-#{$theme} & {
             @if $i == 1 {
-              background: linear-gradient(135deg, theme-color($theme, accent-green), theme-color($theme, accent-lime));
-              box-shadow: 0 5px 15px theme-color($theme, glow-green);
+              background: linear-gradient(135deg, mixins.theme-color($theme, accent-green), mixins.theme-color($theme, accent-lime));
+              box-shadow: 0 5px 15px mixins.theme-color($theme, glow-green);
             } @else if $i == 2 {
-              background: linear-gradient(135deg, theme-color($theme, accent-teal), theme-color($theme, accent-lime));
-              box-shadow: 0 5px 15px theme-color($theme, glow-teal);
+              background: linear-gradient(135deg, mixins.theme-color($theme, accent-teal), mixins.theme-color($theme, accent-lime));
+              box-shadow: 0 5px 15px mixins.theme-color($theme, glow-teal);
               animation-delay: 0.5s;
             } @else if $i == 3 {
-              background: linear-gradient(135deg, theme-color($theme, accent-green), theme-color($theme, accent-teal));
-              box-shadow: 0 5px 15px theme-color($theme, glow-green);
+              background: linear-gradient(135deg, mixins.theme-color($theme, accent-green), mixins.theme-color($theme, accent-teal));
+              box-shadow: 0 5px 15px mixins.theme-color($theme, glow-green);
               animation-delay: 1s;
             } @else if $i == 4 {
-              background: linear-gradient(135deg, theme-color($theme, accent-yellow), theme-color($theme, accent-lime));
-              box-shadow: 0 5px 15px rgba(theme-color($theme, accent-yellow), 0.4);
+              background: linear-gradient(135deg, mixins.theme-color($theme, accent-yellow), mixins.theme-color($theme, accent-lime));
+              box-shadow: 0 5px 15px rgba(mixins.theme-color($theme, accent-yellow), 0.4);
               animation-delay: 1.5s;
             }
           }
@@ -787,26 +828,26 @@ header {
     }
     
     h3 {
-      font-size: map-get(map-get($fonts, sizes), large);
-      margin-bottom: map-get($spacing, s);
+      font-size: map-get(map-get(vars.$fonts, sizes), large);
+      margin-bottom: map-get(vars.$spacing, s);
       position: relative;
       z-index: 1;
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          color: theme-color($theme, text-primary);
+          color: mixins.theme-color($theme, text-primary);
         }
       }
     }
     
     p {
-      font-size: map-get(map-get($fonts, sizes), small);
+      font-size: map-get(map-get(vars.$fonts, sizes), small);
       position: relative;
       z-index: 1;
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          color: theme-color($theme, text-secondary);
+          color: mixins.theme-color($theme, text-secondary);
         }
       }
     }
@@ -815,10 +856,10 @@ header {
 
 // Subscription
 .subscription {
-  @include grid(1fr 1fr, auto, map-get($spacing, xxl));
-  margin-top: map-get($spacing, xxl);
+  @include mixins.grid(1fr 1fr, auto, map-get(vars.$spacing, xxl));
+  margin-top: map-get(vars.$spacing, xxl);
   
-  @include responsive('tablet') {
+  @include mixins.responsive('tablet') {
     grid-template-columns: 1fr;
   }
   
@@ -827,12 +868,12 @@ header {
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        background-color: theme-color($theme, secondary-bg);
-        padding: map-get($spacing, xl);
-        border-radius: map-get(map-get($layout, border-radius), large);
-        border: 2px solid theme-color($theme, border-light);
-        @include shadow('medium', $theme);
-        transition: all map-get($transitions, default);
+        background-color: mixins.theme-color($theme, secondary-bg);
+        padding: map-get(vars.$spacing, xl);
+        border-radius: map-get(map-get(vars.$layout, border-radius), large);
+        border: 2px solid mixins.theme-color($theme, border-light);
+        @include mixins.shadow('medium', $theme);
+        transition: all map-get(vars.$transitions, default);
       }
     }
     
@@ -844,8 +885,8 @@ header {
   .subscription-info:hover {
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        @include glow('green', 'medium', $theme);
-        border-color: theme-color($theme, accent-green);
+        @include mixins.glow('green', 'medium', $theme);
+        border-color: mixins.theme-color($theme, accent-green);
       }
     }
   }
@@ -853,8 +894,8 @@ header {
   .form-container:hover {
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        @include glow('teal', 'medium', $theme);
-        border-color: theme-color($theme, accent-teal);
+        @include mixins.glow('teal', 'medium', $theme);
+        border-color: mixins.theme-color($theme, accent-teal);
       }
     }
   }
@@ -862,16 +903,16 @@ header {
 
 // Formular-Elemente
 .form-group {
-  margin-bottom: map-get($spacing, l);
+  margin-bottom: map-get(vars.$spacing, l);
   
   label {
     display: block;
-    margin-bottom: map-get($spacing, s);
-    font-weight: map-get(map-get($fonts, weights), bold);
+    margin-bottom: map-get(vars.$spacing, s);
+    font-weight: map-get(map-get(vars.$fonts, weights), bold);
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        color: theme-color($theme, text-secondary);
+        color: mixins.theme-color($theme, text-secondary);
       }
     }
   }
@@ -879,7 +920,7 @@ header {
   input, select {
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        @include form-element($theme);
+        @include mixins.form-element($theme);
       }
     }
   }
@@ -888,26 +929,26 @@ header {
 // Button
 .btn {
   display: inline-block;
-  margin-top: map-get($spacing, m);
-  @include shine-effect;
+  margin-top: map-get(vars.$spacing, m);
+  @include animations.shine-effect;
   
   @each $theme in ('light', 'dark') {
     .theme-#{$theme} & {
-      @include button-style($theme, 'medium', true);
+      @include mixins.button-style($theme, 'medium', true);
     }
   }
 }
 
 // Footnote
 .footnote {
-  font-size: map-get(map-get($fonts, sizes), small);
-  margin-top: map-get($spacing, xxl);
+  font-size: map-get(map-get(vars.$fonts, sizes), small);
+  margin-top: map-get(vars.$spacing, xxl);
   text-align: center;
   line-height: 1.6;
   
   @each $theme in ('light', 'dark') {
     .theme-#{$theme} & {
-      color: theme-color($theme, text-tertiary);
+      color: mixins.theme-color($theme, text-tertiary);
     }
   }
 }
@@ -932,8 +973,8 @@ header {
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
-        background-color: theme-color($theme, secondary-bg);
-        box-shadow: 0 3px 10px theme-color($theme, shadow-color);
+        background-color: mixins.theme-color($theme, secondary-bg);
+        box-shadow: 0 3px 10px mixins.theme-color($theme, shadow-color);
         
         &:hover {
           transform: scale(1.1);
@@ -951,17 +992,7 @@ header {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: map-get($z-index, below);
-  
-  .leaf {
-    position: absolute;
-    opacity: 0;
-    
-    @each $theme in ('light', 'dark') {
-      .theme-#{$theme} & {
-        @include animated-leaf(5, 15);
-      }
-    }
-  }
+  z-index: map-get(vars.$z-index, below);
+  overflow: hidden;
 }
 </style>

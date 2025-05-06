@@ -1,16 +1,16 @@
-@use 'variables';
+@use 'variables' as vars;
 
 // Hilfsfunktion zum Abrufen von verschachtelten Map-Werten
 @function theme-color($theme, $color-name) {
-  @return map-get(map-get($colors, $theme), $color-name);
+  @return map-get(map-get(vars.$colors, $theme), $color-name);
 }
 
 @function theme-gradient($theme, $gradient-name) {
-  @return map-get(map-get($gradients, $theme), $gradient-name);
+  @return map-get(map-get(vars.$gradients, $theme), $gradient-name);
 }
 
 // Theme-Mixin
-@mixin themed($property, $key, $value-map: $colors) {
+@mixin themed($property, $key, $value-map: vars.$colors) {
   @each $theme, $map in $value-map {
     .theme-#{$theme} & {
       #{$property}: map-get($map, $key);
@@ -20,7 +20,7 @@
 
 // Responsive Design
 @mixin responsive($breakpoint) {
-  $value: map-get(map-get($layout, breakpoints), $breakpoint);
+  $value: map-get(map-get(vars.$layout, breakpoints), $breakpoint);
   
   @if $value {
     @media (max-width: $value) {
@@ -41,7 +41,7 @@
 }
 
 // Grid
-@mixin grid($columns: 1fr, $rows: auto, $gap: map-get($spacing, m)) {
+@mixin grid($columns: 1fr, $rows: auto, $gap: map-get(vars.$spacing, m)) {
   display: grid;
   grid-template-columns: $columns;
   grid-template-rows: $rows;
@@ -87,25 +87,25 @@
   border: none;
   
   @if $size == 'small' {
-    padding: map-get($spacing, xs) map-get($spacing, m);
-    font-size: map-get(map-get($fonts, sizes), small);
+    padding: map-get(vars.$spacing, xs) map-get(vars.$spacing, m);
+    font-size: map-get(map-get(vars.$fonts, sizes), small);
   } @else if $size == 'medium' {
-    padding: map-get($spacing, m) map-get($spacing, xl);
-    font-size: map-get(map-get($fonts, sizes), base);
+    padding: map-get(vars.$spacing, m) map-get(vars.$spacing, xl);
+    font-size: map-get(map-get(vars.$fonts, sizes), base);
   } @else if $size == 'large' {
-    padding: map-get($spacing, l) map-get($spacing, xxl);
-    font-size: map-get(map-get($fonts, sizes), medium);
+    padding: map-get(vars.$spacing, l) map-get(vars.$spacing, xxl);
+    font-size: map-get(map-get(vars.$fonts, sizes), medium);
   }
   
   @if $rounded {
-    border-radius: map-get(map-get($layout, border-radius), pill);
+    border-radius: map-get(map-get(vars.$layout, border-radius), pill);
   } @else {
-    border-radius: map-get(map-get($layout, border-radius), medium);
+    border-radius: map-get(map-get(vars.$layout, border-radius), medium);
   }
   
-  font-weight: map-get(map-get($fonts, weights), bold);
+  font-weight: map-get(map-get(vars.$fonts, weights), bold);
   cursor: pointer;
-  transition: transform map-get($transitions, default), box-shadow map-get($transitions, default);
+  transition: transform map-get(vars.$transitions, default), box-shadow map-get(vars.$transitions, default);
   position: relative;
   overflow: hidden;
   
@@ -118,19 +118,19 @@
 // Karten-Stil
 @mixin card-style($theme: 'light', $padding: 'medium', $hover-effect: true) {
   background-color: theme-color($theme, card-bg);
-  border-radius: map-get(map-get($layout, border-radius), large);
+  border-radius: map-get(map-get(vars.$layout, border-radius), large);
   border: 2px solid theme-color($theme, border-medium);
   
   @if $padding == 'small' {
-    padding: map-get($spacing, l);
+    padding: map-get(vars.$spacing, l);
   } @else if $padding == 'medium' {
-    padding: map-get($spacing, xl);
+    padding: map-get(vars.$spacing, xl);
   } @else if $padding == 'large' {
-    padding: map-get($spacing, xxl);
+    padding: map-get(vars.$spacing, xxl);
   }
   
   @include shadow('medium', $theme);
-  transition: transform map-get($transitions, default), box-shadow map-get($transitions, default);
+  transition: transform map-get(vars.$transitions, default), box-shadow map-get(vars.$transitions, default);
   
   @if $hover-effect {
     &:hover {
@@ -145,7 +145,7 @@
 @mixin section-header($theme: 'light') {
   position: relative;
   display: inline-block;
-  margin-bottom: map-get($spacing, xl);
+  margin-bottom: map-get(vars.$spacing, xl);
   
   &::after {
     content: '';
@@ -186,7 +186,7 @@
 @mixin form-element($theme: 'light') {
   width: 100%;
   padding: 0.9rem 1.2rem;
-  border-radius: map-get(map-get($layout, border-radius), medium);
+  border-radius: map-get(map-get(vars.$layout, border-radius), medium);
   border: 2px solid theme-color($theme, border-medium);
   
   @if $theme == 'dark' {
@@ -197,9 +197,9 @@
     color: theme-color($theme, text-primary);
   }
   
-  font-family: map-get($fonts, primary);
-  font-size: map-get(map-get($fonts, sizes), base);
-  transition: all map-get($transitions, default);
+  font-family: map-get(vars.$fonts, primary);
+  font-size: map-get(map-get(vars.$fonts, sizes), base);
+  transition: all map-get(vars.$transitions, default);
   
   &:focus {
     outline: none;
