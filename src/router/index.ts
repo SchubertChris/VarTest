@@ -2,12 +2,12 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import LandingPage from '../pages/LandingPage.vue';
 import LoginRegister from '../pages/LoginRegister.vue';
-import Articles from '../pages/Articles.vue';
 import Contact from '../pages/Contact.vue';
 import AppLayout from '../components/layout/AppLayout.vue';
 import ProtectedRoute from '../components/route/ProtectedRoute.vue';
 import MemberArticlesNew from '../pages/member/Dashboard.vue'; // Importiere die neue Komponente
 import { authService } from '@/services/auth.service';
+import Dashboard from '../pages/member/Dashboard.vue';
 
 // Platzhalter für die rechtlichen Seiten
 const PlaceholderPage = {
@@ -56,9 +56,9 @@ const routes: Array<RouteRecordRaw> = [
         component: LoginRegister
       },
       {
-        path: 'articles',
-        name: 'Articles',
-        component: Articles
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: Dashboard
       },
       {
         path: 'contact',
@@ -98,9 +98,9 @@ const routes: Array<RouteRecordRaw> = [
     beforeEnter: requireAuth, // Navigation Guard für geschützte Routen
     children: [
       {
-        path: 'articles',
-        name: 'MemberArticles',
-        component: MemberArticlesNew
+        path: 'dashboard',
+        name: 'Dashboard',
+        component: Dashboard
       },
       {
         path: 'profile',
@@ -155,14 +155,14 @@ const router = createRouter({
 // Globaler Navigation Guard
 router.beforeEach((to, from, next) => {
   // Da wir kein echtes Backend haben, führen wir hier eine einfache Auth-Überprüfung durch
-  const publicPages = ['/', '/login-register', '/articles', '/contact', '/datenschutz', '/impressum', '/agb'];
+  const publicPages = ['/', '/login-register', '/contact', '/datenschutz', '/impressum', '/agb'];
   const authRequired = !publicPages.includes(to.path) && !to.path.startsWith('/public/');
   const loggedIn = authService.isLoggedIn();
 
   // Wenn der Benutzer bereits eingeloggt ist und versucht, die Login-Seite aufzurufen,
   // leiten wir ihn zur Member-Startseite weiter
   if (to.path === '/login-register' && loggedIn) {
-    return next('/member/articles');
+    return next('/member/dashboard');
   }
 
   // Bei geschützten Routen prüfen, ob der Benutzer angemeldet ist
