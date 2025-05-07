@@ -6,7 +6,7 @@ import Articles from '../pages/Articles.vue';
 import Contact from '../pages/Contact.vue';
 import AppLayout from '../components/layout/AppLayout.vue';
 import ProtectedRoute from '../components/route/ProtectedRoute.vue';
-import MemberArticlesNew from '../pages/member/Articles.vue'; // Importiere die neue Komponente
+import MemberArticlesNew from '../pages/member/Dashboard.vue'; // Importiere die neue Komponente
 import { authService } from '@/services/auth.service';
 
 // Platzhalter für die rechtlichen Seiten
