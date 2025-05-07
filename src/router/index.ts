@@ -117,6 +117,11 @@ const routes: Array<RouteRecordRaw> = [
         redirect: { name: 'MemberDashboard', query: { tab: 'my-articles' } }
       },
       {
+        path: 'library',
+        name: 'UserLibrary',
+        redirect: { name: 'MemberDashboard', query: { tab: 'library' } }
+      },
+      {
         path: 'friends',
         name: 'UserFriends',
         redirect: { name: 'MemberDashboard', query: { tab: 'friends' } }

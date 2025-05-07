@@ -172,14 +172,14 @@
         <div class="empty-icon">🔍</div>
         <h3>Keine Empfehlungen vorhanden</h3>
         <p>Derzeit gibt es keine Freundschaftsempfehlungen für dich.</p>
-        <button class="reset-button invite-button">
+        <button class="reset-button invite-button" @click="showInviteModal = true">
           <span class="invite-icon">✉️</span>
           Freunde einladen
         </button>
       </div>
     </div>
     
-    <!-- Einladungs-Modal (als Platzhalter) -->
+    <!-- Einladungs-Modal -->
     <div v-if="showInviteModal" class="modal-backdrop" @click="showInviteModal = false">
       <div class="modal-content" @click.stop>
         <h3>Freunde einladen</h3>
@@ -630,7 +630,7 @@ export default defineComponent({
     }
   }
   
-  // Gemeinsame Stile für Freunde, Anfragen und Empfehlungen
+  // Gemeinsame Stile für Cards
   .friends-grid, .requests-grid, .suggestions-grid {
     display: grid;
     gap: map.get(vars.$spacing, l);
@@ -641,13 +641,15 @@ export default defineComponent({
     }
   }
   
-  // Freunde-Karten
+  // Card-Styles
   .friend-card, .request-card, .suggestion-card {
     display: flex;
-    gap: map.get(vars.$spacing, m);
     padding: map.get(vars.$spacing, l);
     border-radius: map.get(map.get(vars.$layout, border-radius), medium);
     position: relative;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    gap: map.get(vars.$spacing, m);
+    overflow: hidden;
     
     @each $theme in ('light', 'dark') {
       .theme-#{$theme} & {
@@ -655,6 +657,7 @@ export default defineComponent({
         border: 1px solid mixins.theme-color($theme, border-light);
         
         &:hover {
+          transform: translateY(-4px);
           @include mixins.shadow('medium', $theme);
           border-color: mixins.theme-color($theme, border-medium);
         }
@@ -723,6 +726,7 @@ export default defineComponent({
       .friend-bio, .request-message, .suggestion-bio {
         margin-bottom: map.get(vars.$spacing, s);
         font-size: map.get(map.get(vars.$fonts, sizes), medium);
+        line-height: 1.4;
         
         @each $theme in ('light', 'dark') {
           .theme-#{$theme} & {
@@ -743,9 +747,10 @@ export default defineComponent({
           }
         }
         
-        .friend-since, .request-date, .mutual-friends, .match-reason {
-          padding: 2px 8px;
+        .friend-since, .request-date, .mutual-friends, .match-reason, .shared-interests {
+          padding: 4px 10px;
           border-radius: map.get(map.get(vars.$layout, border-radius), pill);
+          white-space: nowrap;
           
           @each $theme in ('light', 'dark') {
             .theme-#{$theme} & {
@@ -760,14 +765,10 @@ export default defineComponent({
     .friend-actions, .request-actions, .suggestion-actions {
       display: flex;
       gap: map.get(vars.$spacing, s);
-      
-      .friend-actions {
-        align-items: flex-start;
-      }
+      align-items: flex-start;
       
       .request-actions, .suggestion-actions {
         flex-direction: column;
-        justify-content: center;
       }
       
       .action-button {
@@ -777,6 +778,7 @@ export default defineComponent({
         font-weight: map.get(map.get(vars.$fonts, weights), medium);
         cursor: pointer;
         border: none;
+        transition: all 0.2s ease;
         
         &.message {
           @each $theme in ('light', 'dark') {
@@ -793,12 +795,13 @@ export default defineComponent({
         }
         
         &.more {
-          width: 30px;
-          height: 30px;
+          width: 32px;
+          height: 32px;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 0;
+          font-size: 18px;
           
           @each $theme in ('light', 'dark') {
             .theme-#{$theme} & {

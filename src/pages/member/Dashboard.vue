@@ -1,4 +1,4 @@
-<!-- src/pages/member/Dashboard.vue -->
+<!-- src/pages/member/Dashboard.vue (Aktualisiert) -->
 <template>
   <MemberLayout 
     :page-title="getPageTitle()" 
@@ -22,6 +22,7 @@ import Favorites from '@/components/member/dashboard/Favorites.vue';
 import Friends from '@/components/member/dashboard/Friends.vue';
 import Notifications from '@/components/member/dashboard/Notifications.vue';
 import Settings from '@/components/member/dashboard/Settings.vue';
+import Library from '@/components/member/dashboard/Library.vue'; // Neue Bibliothek-Komponente
 
 // Auth-Service für Benutzerüberprüfung
 import { authService } from '@/services/auth.service';
@@ -35,7 +36,8 @@ export default defineComponent({
     Favorites,
     Friends,
     Notifications,
-    Settings
+    Settings,
+    Library // Neue Komponente registrieren
   },
   props: {
     // Standardtab aus der Routerkonfiguration
@@ -58,7 +60,8 @@ export default defineComponent({
       'favorites': Favorites,
       'friends': Friends,
       'notifications': Notifications,
-      'settings': Settings
+      'settings': Settings,
+      'library': Library // Neue Komponente im Mapping
     });
     
     // Aktuelle Komponente basierend auf Menüauswahl
@@ -81,6 +84,8 @@ export default defineComponent({
           return 'Benachrichtigungen';
         case 'settings':
           return 'Einstellungen';
+        case 'library':
+          return 'Bibliothek';
         default:
           return 'Dashboard';
       }

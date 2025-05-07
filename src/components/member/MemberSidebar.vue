@@ -1,4 +1,4 @@
-<!-- src/components/member/MemberSidebar.vue -->
+<!-- src/components/member/MemberSidebar.vue (Vollständig) -->
 <template>
   <aside class="member-sidebar" :class="{ 'open': isOpen }">
     <!-- Sidebar-Header mit Logo und Schließen-Button -->
@@ -55,6 +55,7 @@ export default defineComponent({
     const menuItems = ref([
       { id: 'overview', text: 'Übersicht', icon: '📊' },
       { id: 'my-articles', text: 'Meine Artikel', icon: '📚' },
+      { id: 'library', text: 'Bibliothek', icon: '📖' }, // Neuer Menüpunkt für Bibliothek
       { id: 'favorites', text: 'Favoriten', icon: '❤️' },
       { id: 'friends', text: 'Freunde', icon: '👥' },
       { id: 'notifications', text: 'Benachrichtigungen', icon: '🔔' },
