@@ -1,4 +1,4 @@
-<!-- src/components/member/MemberSidebar.vue (Vollständig) -->
+<!-- src/components/member/MemberSidebar.vue -->
 <template>
   <aside class="member-sidebar" :class="{ 'open': isOpen }">
     <!-- Sidebar-Header mit Logo und Schließen-Button -->
@@ -161,10 +161,6 @@ export default defineComponent({
             color: mixins.theme-color($theme, text-primary);
           }
         }
-      }
-      
-      @media (min-width: 1024px) {
-        display: none; // Auf Desktop verstecken
       }
     }
   }

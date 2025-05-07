@@ -632,17 +632,19 @@ export default defineComponent({
   
   // Gemeinsame Stile für Cards
   .friends-grid, .requests-grid, .suggestions-grid {
-    display: grid;
-    gap: map.get(vars.$spacing, l);
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: map.get(vars.$spacing, l); // Adjusted spacing for better alignment
     
     @media (max-width: 768px) {
-      grid-template-columns: 1fr;
+      justify-content: center; // Center align cards on smaller screens
     }
   }
   
   // Card-Styles
   .friend-card, .request-card, .suggestion-card {
+    width: 600px;
     display: flex;
     padding: map.get(vars.$spacing, l);
     border-radius: map.get(map.get(vars.$layout, border-radius), medium);

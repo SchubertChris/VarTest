@@ -12,7 +12,6 @@
       <div class="header-right">
         <ThemeToggle :is-light-theme="isLightTheme" @toggle="toggleTheme" />
         <div class="user-info">
-          <span class="user-greeting">Hallo, {{ userName }}</span>
           <button class="logout-button" @click="handleLogout">Abmelden</button>
         </div>
       </div>

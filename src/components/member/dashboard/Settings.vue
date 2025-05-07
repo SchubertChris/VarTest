@@ -25,45 +25,116 @@
       <h3>Profil bearbeiten</h3>
       <p class="section-description">Aktualisiere deine persönlichen Informationen</p>
       
+      <!-- Erfolgsmeldung -->
+      <div v-if="saveSuccess" class="alert alert-success">
+        <span class="alert-icon">✓</span>
+        <span>Deine Profileinstellungen wurden erfolgreich gespeichert!</span>
+      </div>
+      
+      <!-- Fehlermeldung -->
+      <div v-if="saveError" class="alert alert-error">
+        <span class="alert-icon">⚠️</span>
+        <span>{{ errorMessage }}</span>
+      </div>
+      
       <form @submit.prevent="saveProfileSettings" class="settings-form">
         <div class="form-group profile-avatar">
           <div class="avatar-preview">
             <span class="avatar-placeholder">{{ getInitials(profileForm.firstName, profileForm.lastName) }}</span>
-            <button type="button" class="change-avatar-btn">Ändern</button>
+            <button type="button" class="change-avatar-btn" title="Profilbild ändern">📷</button>
           </div>
         </div>
         
         <div class="form-row">
           <div class="form-group">
-            <label for="first-name">Vorname</label>
-            <input type="text" id="first-name" v-model="profileForm.firstName" required />
+            <label for="first-name" class="readonly-label">
+              <span>Vorname</span>
+              <span class="lock-icon" title="Nicht editierbar">🔒</span>
+            </label>
+            <div class="input-container readonly">
+              <input type="text" id="first-name" v-model="profileForm.firstName" disabled class="readonly-field" />
+            </div>
           </div>
           
           <div class="form-group">
-            <label for="last-name">Nachname</label>
-            <input type="text" id="last-name" v-model="profileForm.lastName" required />
+            <label for="last-name" class="readonly-label">
+              <span>Nachname</span>
+              <span class="lock-icon" title="Nicht editierbar">🔒</span>
+            </label>
+            <div class="input-container readonly">
+              <input type="text" id="last-name" v-model="profileForm.lastName" disabled class="readonly-field" />
+            </div>
           </div>
         </div>
         
         <div class="form-group">
           <label for="username">Benutzername</label>
-          <input type="text" id="username" v-model="profileForm.username" required />
+          <div class="input-container">
+            <input 
+              type="text" 
+              id="username" 
+              v-model="profileForm.username" 
+              required 
+              class="editable-field"
+              data-field="username" 
+            />
+          </div>
         </div>
         
         <div class="form-group">
           <label for="email">E-Mail</label>
-          <input type="email" id="email" v-model="profileForm.email" required />
+          <div class="input-container">
+            <input 
+              type="email" 
+              id="email" 
+              v-model="profileForm.email" 
+              required 
+              class="editable-field"
+              data-field="email" 
+            />
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="phone">Telefonnummer</label>
+          <div class="input-container">
+            <input 
+              type="tel" 
+              id="phone" 
+              v-model="profileForm.phone" 
+              placeholder="+49 123 456789" 
+              class="editable-field"
+              data-field="phone" 
+            />
+          </div>
+          <span class="help-text">Ihre Telefonnummer im internationalen Format (optional)</span>
         </div>
         
         <div class="form-group">
           <label for="bio">Über mich</label>
-          <textarea id="bio" v-model="profileForm.bio" rows="4"></textarea>
+          <div class="input-container">
+            <textarea 
+              id="bio" 
+              v-model="profileForm.bio" 
+              rows="4" 
+              class="editable-field"
+              data-field="bio" 
+            ></textarea>
+          </div>
           <span class="help-text">Kurze Beschreibung über dich (max. 200 Zeichen)</span>
+          <span v-if="profileForm.bio" class="character-count" :class="{ warning: profileForm.bio.length > 180, error: profileForm.bio.length > 200 }">
+            {{ profileForm.bio.length }}/200
+          </span>
         </div>
         
         <div class="form-actions">
-          <button type="button" class="cancel-button" @click="resetProfileForm">Zurücksetzen</button>
-          <button type="submit" class="save-button">Speichern</button>
+          <button type="button" class="cancel-button" @click="resetProfileForm">
+            <span class="button-icon">↩️</span> Zurücksetzen
+          </button>
+          <button type="submit" class="save-button" :disabled="isSaving">
+            <span v-if="isSaving" class="loading-spinner"></span>
+            <span v-else class="button-icon">💾</span> Speichern
+          </button>
         </div>
       </form>
     </div>
@@ -78,12 +149,16 @@
         <form @submit.prevent="changePassword" class="settings-form">
           <div class="form-group">
             <label for="current-password">Aktuelles Passwort</label>
-            <input type="password" id="current-password" v-model="passwordForm.currentPassword" required />
+            <div class="input-container">
+              <input type="password" id="current-password" v-model="passwordForm.currentPassword" required />
+            </div>
           </div>
           
           <div class="form-group">
             <label for="new-password">Neues Passwort</label>
-            <input type="password" id="new-password" v-model="passwordForm.newPassword" required />
+            <div class="input-container">
+              <input type="password" id="new-password" v-model="passwordForm.newPassword" required />
+            </div>
             <div class="password-strength" :class="passwordStrength">
               <div class="strength-bar"></div>
               <span class="strength-text">{{ getPasswordStrengthText() }}</span>
@@ -92,8 +167,10 @@
           
           <div class="form-group">
             <label for="confirm-password">Passwort bestätigen</label>
-            <input type="password" id="confirm-password" v-model="passwordForm.confirmPassword" required />
-            <span class="help-text" v-if="!passwordsMatch">Passwörter stimmen nicht überein</span>
+            <div class="input-container" :class="{ 'error': !passwordsMatch && passwordForm.confirmPassword }">
+              <input type="password" id="confirm-password" v-model="passwordForm.confirmPassword" required />
+            </div>
+            <span class="help-text error-text" v-if="!passwordsMatch && passwordForm.confirmPassword">Passwörter stimmen nicht überein</span>
           </div>
           
           <div class="form-actions right">
@@ -130,7 +207,10 @@
           </div>
           
           <div class="form-actions">
-            <button type="submit" class="save-button">Speichern</button>
+            <button type="submit" class="save-button" :disabled="isSaving">
+              <span v-if="isSaving" class="loading-spinner"></span>
+              <span v-else>Speichern</span>
+            </button>
           </div>
         </form>
       </div>
@@ -193,7 +273,10 @@
         </div>
         
         <div class="form-actions">
-          <button type="button" class="save-button" @click="saveAppearanceSettings">Speichern</button>
+          <button type="button" class="save-button" @click="saveAppearanceSettings" :disabled="isSaving">
+            <span v-if="isSaving" class="loading-spinner"></span>
+            <span v-else>Speichern</span>
+          </button>
         </div>
       </div>
     </div>
@@ -256,7 +339,10 @@
           </div>
           
           <div class="form-actions">
-            <button type="submit" class="save-button">Speichern</button>
+            <button type="submit" class="save-button" :disabled="isSaving">
+              <span v-if="isSaving" class="loading-spinner"></span>
+              <span v-else>Speichern</span>
+            </button>
           </div>
         </form>
       </div>
@@ -279,9 +365,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
+import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { authService } from '@/services/auth.service';
+import { userService } from '@/services/user.service'; // Hinzugefügt für API-Aufrufe
 
 interface NotificationSetting {
   id: string;
@@ -318,22 +405,32 @@ export default defineComponent({
       { id: 'privacy', name: 'Datenschutz', icon: '🔐' }
     ]);
     
-    // Bestätigungsdialog
+    // Bestätigungsdialog Funktionalität
     const showConfirmDialog = ref(false);
     const confirmDialogTitle = ref('');
     const confirmDialogMessage = ref('');
     const confirmDialogAction = ref('');
     const confirmDangerAction = ref(false);
-    const pendingAction = ref<(() => void) | null>(null);
+    const pendingAction = ref(null);
     
-    // Profilformular
+    // Status für Formularprozesse
+    const isSaving = ref(false);
+    const saveSuccess = ref(false);
+    const saveError = ref(false);
+    const errorMessage = ref('');
+    
+    // Profilformular mit neuer Telefonnummer
     const profileForm = ref({
       firstName: 'Max',
       lastName: 'Mustermann',
       username: 'max.mustermann',
       email: 'max@example.com',
+      phone: '+49 123 456789', // Neues Feld für Telefonnummer
       bio: 'Vater von zwei Kindern (4 und 7 Jahre). Interesse an Erziehungsmethoden und kindlicher Entwicklung.'
     });
+    
+    // Original-Profilformular zur Wiederherstellung
+    const originalProfileForm = ref({...profileForm.value});
     
     // Passwortformular
     const passwordForm = ref({
@@ -422,6 +519,11 @@ export default defineComponent({
       }
     ]);
     
+    // Initialen für Avatar-Platzhalter generieren
+    const getInitials = (firstName, lastName) => {
+      return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+    };
+    
     // Passwort-Stärke berechnen
     const passwordStrength = computed(() => {
       const password = passwordForm.value.newPassword;
@@ -460,16 +562,27 @@ export default defineComponent({
       return passwordForm.value.newPassword === passwordForm.value.confirmPassword;
     });
     
-    // Initialen für Avatar-Platzhalter generieren
-    const getInitials = (firstName: string, lastName: string) => {
-      return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-    };
-    
     // Schriftgröße für Vorschau
     const getFontSizePreview = () => {
       const baseSize = 16;
       const multiplier = 0.85 + (appearanceSettings.value.fontSize * 0.15);
       return `${baseSize * multiplier}px`;
+    };
+    
+    // Profilformular laden
+    const loadProfileData = async () => {
+      try {
+        // In einem echten Szenario: Daten vom Server laden
+        // const response = await userService.getProfile();
+        // profileForm.value = response.data;
+        // originalProfileForm.value = {...response.data};
+        
+        // Für Beispielzwecke verwenden wir hart codierte Daten
+        // Hier später Implementierung für API-Aufruf
+      } catch (error) {
+        console.error('Fehler beim Laden der Profildaten:', error);
+        errorMessage.value = 'Profildaten konnten nicht geladen werden.';
+      }
     };
     
     // Profilformular zurücksetzen
@@ -479,64 +592,187 @@ export default defineComponent({
         'Möchtest du wirklich alle Änderungen verwerfen?',
         'Verwerfen',
         () => {
-          // Hier später die originalen Daten vom Server laden
-          // Derzeit nur die hartcodierten Werte zurücksetzen
-          profileForm.value = {
-            firstName: 'Max',
-            lastName: 'Mustermann',
-            username: 'max.mustermann',
-            email: 'max@example.com',
-            bio: 'Vater von zwei Kindern (4 und 7 Jahre). Interesse an Erziehungsmethoden und kindlicher Entwicklung.'
-          };
+          profileForm.value = {...originalProfileForm.value};
         }
       );
     };
     
     // Profil speichern
-    const saveProfileSettings = () => {
-      // Hier später API-Aufruf implementieren
-      alert('Profil wurde gespeichert!');
+    const saveProfileSettings = async () => {
+      try {
+        isSaving.value = true;
+        saveError.value = false;
+        
+        // Validierung der eingegebenen Daten
+        if (!validateEmail(profileForm.value.email)) {
+          throw new Error('Bitte gib eine gültige E-Mail-Adresse ein.');
+        }
+        
+        if (profileForm.value.phone && !validatePhone(profileForm.value.phone)) {
+          throw new Error('Bitte gib eine gültige Telefonnummer ein.');
+        }
+        
+        // In einem echten Szenario: Daten zum Server senden
+        // await userService.updateProfile(profileForm.value);
+        
+        // Für Beispielzwecke: Simulation einer API-Antwort
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Erfolgsfall
+        originalProfileForm.value = {...profileForm.value};
+        saveSuccess.value = true;
+        setTimeout(() => {
+          saveSuccess.value = false;
+        }, 3000);
+        
+      } catch (error) {
+        saveError.value = true;
+        errorMessage.value = error.message || 'Profil konnte nicht gespeichert werden.';
+      } finally {
+        isSaving.value = false;
+      }
     };
     
     // Passwort ändern
-    const changePassword = () => {
-      // Hier später API-Aufruf implementieren
-      
-      // Zurücksetzen des Formulars
-      passwordForm.value = {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      };
-      
-      alert('Passwort wurde erfolgreich geändert!');
+    const changePassword = async () => {
+      try {
+        isSaving.value = true;
+        saveError.value = false;
+        
+        // Validierung
+        if (passwordForm.value.newPassword.length < 8) {
+          throw new Error('Das Passwort muss mindestens 8 Zeichen lang sein.');
+        }
+        
+        if (!passwordsMatch.value) {
+          throw new Error('Die Passwörter stimmen nicht überein.');
+        }
+        
+        // In einem echten Szenario: Passwort ändern
+        // await userService.changePassword(passwordForm.value);
+        
+        // Für Beispielzwecke: Simulation einer API-Antwort
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Zurücksetzen des Formulars
+        passwordForm.value = {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        };
+        
+        // Erfolgsanzeige
+        saveSuccess.value = true;
+        setTimeout(() => {
+          saveSuccess.value = false;
+        }, 3000);
+        
+      } catch (error) {
+        saveError.value = true;
+        errorMessage.value = error.message || 'Passwort konnte nicht geändert werden.';
+      } finally {
+        isSaving.value = false;
+      }
     };
     
     // Benachrichtigungseinstellungen speichern
-    const saveNotificationSettings = () => {
-      // Hier später API-Aufruf implementieren
-      alert('Benachrichtigungseinstellungen wurden gespeichert!');
+    const saveNotificationSettings = async () => {
+      try {
+        isSaving.value = true;
+        saveError.value = false;
+        
+        // In einem echten Szenario: Daten zum Server senden
+        // await userService.updateNotificationSettings(notificationSettings.value);
+        
+        // Für Beispielzwecke: Simulation einer API-Antwort
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Erfolgsanzeige
+        saveSuccess.value = true;
+        setTimeout(() => {
+          saveSuccess.value = false;
+        }, 3000);
+        
+      } catch (error) {
+        saveError.value = true;
+        errorMessage.value = error.message || 'Benachrichtigungseinstellungen konnten nicht gespeichert werden.';
+      } finally {
+        isSaving.value = false;
+      }
     };
     
-    // Erscheinungsbild-Einstellungen speichern
-    const saveAppearanceSettings = () => {
-      // Theme im localStorage speichern
-      localStorage.setItem('theme', appearanceSettings.value.theme);
-      
-      // Event senden, um das Theme in der App zu ändern
-      const event = new CustomEvent('theme-changed', { 
-        detail: { theme: appearanceSettings.value.theme } 
-      });
-      window.dispatchEvent(event);
-      
-      // Hier später weitere API-Aufrufe für andere Einstellungen implementieren
-      alert('Design-Einstellungen wurden gespeichert!');
+    // Design-Einstellungen speichern
+    const saveAppearanceSettings = async () => {
+      try {
+        isSaving.value = true;
+        saveError.value = false;
+        
+        // Theme im localStorage speichern
+        localStorage.setItem('theme', appearanceSettings.value.theme);
+        
+        // Event senden, um das Theme in der App zu ändern
+        const event = new CustomEvent('theme-changed', { 
+          detail: { theme: appearanceSettings.value.theme } 
+        });
+        window.dispatchEvent(event);
+        
+        // In einem echten Szenario: Weitere Einstellungen zum Server senden
+        // await userService.updateAppearanceSettings(appearanceSettings.value);
+        
+        // Für Beispielzwecke: Simulation einer API-Antwort
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Erfolgsanzeige
+        saveSuccess.value = true;
+        setTimeout(() => {
+          saveSuccess.value = false;
+        }, 3000);
+        
+      } catch (error) {
+        saveError.value = true;
+        errorMessage.value = error.message || 'Design-Einstellungen konnten nicht gespeichert werden.';
+      } finally {
+        isSaving.value = false;
+      }
     };
     
     // Datenschutzeinstellungen speichern
-    const savePrivacySettings = () => {
-      // Hier später API-Aufruf implementieren
-      alert('Datenschutzeinstellungen wurden gespeichert!');
+    const savePrivacySettings = async () => {
+      try {
+        isSaving.value = true;
+        saveError.value = false;
+        
+        // In einem echten Szenario: Daten zum Server senden
+        // await userService.updatePrivacySettings(privacySettings.value);
+        
+        // Für Beispielzwecke: Simulation einer API-Antwort
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Erfolgsanzeige
+        saveSuccess.value = true;
+        setTimeout(() => {
+          saveSuccess.value = false;
+        }, 3000);
+        
+      } catch (error) {
+        saveError.value = true;
+        errorMessage.value = error.message || 'Datenschutzeinstellungen konnten nicht gespeichert werden.';
+      } finally {
+        isSaving.value = false;
+      }
+    };
+    
+    // E-Mail-Validierung
+    const validateEmail = (email) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    };
+    
+    // Telefonnummer-Validierung
+    const validatePhone = (phone) => {
+      // Einfache Validierung für internationale Telefonnummern
+      const phoneRegex = /^\+?[0-9\s()-]{8,}$/;
+      return phoneRegex.test(phone);
     };
     
     // Konto löschen bestätigen
@@ -551,19 +787,34 @@ export default defineComponent({
     };
     
     // Konto löschen
-    const deleteAccount = () => {
-      // Hier später API-Aufruf implementieren
-      authService.logout();
-      router.push('/');
+    const deleteAccount = async () => {
+      try {
+        isSaving.value = true;
+        
+        // In einem echten Szenario: Konto löschen
+        // await userService.deleteAccount();
+        
+        // Für Beispielzwecke: Simulation einer API-Antwort
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Benutzer ausloggen und zur Startseite weiterleiten
+        authService.logout();
+        router.push('/');
+        
+      } catch (error) {
+        saveError.value = true;
+        errorMessage.value = error.message || 'Konto konnte nicht gelöscht werden.';
+        isSaving.value = false;
+      }
     };
     
     // Bestätigungsdialog anzeigen
     const confirmDialog = (
-      title: string, 
-      message: string, 
-      actionText: string, 
-      action: () => void,
-      isDangerAction: boolean = false
+      title, 
+      message, 
+      actionText, 
+      action,
+      isDangerAction = false
     ) => {
       confirmDialogTitle.value = title;
       confirmDialogMessage.value = message;
@@ -588,6 +839,11 @@ export default defineComponent({
       showConfirmDialog.value = false;
     };
     
+    // Bei Komponentenerstellung Profildaten laden
+    onMounted(() => {
+      loadProfileData();
+    });
+    
     return {
       activeTab,
       tabs,
@@ -596,6 +852,10 @@ export default defineComponent({
       notificationSettings,
       appearanceSettings,
       privacySettings,
+      isSaving,
+      saveSuccess,
+      saveError,
+      errorMessage,
       passwordStrength,
       passwordsMatch,
       showConfirmDialog,
@@ -632,6 +892,10 @@ export default defineComponent({
   flex-direction: column;
   gap: map.get(vars.$spacing, l);
   
+  // Entfernte max-width um volle Breite zu nutzen
+  // max-width: 1200px;
+  // margin: 0 auto;
+  
   .page-header {
     margin-bottom: map.get(vars.$spacing, l);
     
@@ -653,6 +917,42 @@ export default defineComponent({
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
           color: mixins.theme-color($theme, text-secondary);
+        }
+      }
+    }
+  }
+  
+  // Alerts
+  .alert {
+    margin-bottom: map.get(vars.$spacing, l);
+    padding: map.get(vars.$spacing, m);
+    border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+    display: flex;
+    align-items: center;
+    
+    .alert-icon {
+      margin-right: map.get(vars.$spacing, m);
+      font-size: 1.2rem;
+    }
+    
+    &.alert-success {
+      background-color: rgba(46, 204, 113, 0.1);
+      border-left: 4px solid #2ecc71;
+      
+      @each $theme in ('light', 'dark') {
+        .theme-#{$theme} & {
+          color: mixins.theme-color($theme, text-primary);
+        }
+      }
+    }
+    
+    &.alert-error {
+      background-color: rgba(231, 76, 60, 0.1);
+      border-left: 4px solid #e74c3c;
+      
+      @each $theme in ('light', 'dark') {
+        .theme-#{$theme} & {
+          color: mixins.theme-color($theme, text-primary);
         }
       }
     }
@@ -760,236 +1060,6 @@ export default defineComponent({
       }
     }
     
-    // Formulare
-    .settings-form {
-      .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: map.get(vars.$spacing, l);
-        
-        @media (max-width: 768px) {
-          grid-template-columns: 1fr;
-        }
-      }
-      
-      .form-group {
-        margin-bottom: map.get(vars.$spacing, l);
-        
-        label {
-          display: block;
-          margin-bottom: map.get(vars.$spacing, xs);
-          font-weight: map.get(map.get(vars.$fonts, weights), medium);
-          
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              color: mixins.theme-color($theme, text-secondary);
-            }
-          }
-        }
-        
-        input, textarea, select {
-          width: 100%;
-          padding: map.get(vars.$spacing, m);
-          border-radius: map.get(map.get(vars.$layout, border-radius), medium);
-          
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              background-color: mixins.theme-color($theme, secondary-bg);
-              color: mixins.theme-color($theme, text-primary);
-              border: 1px solid mixins.theme-color($theme, border-light);
-              
-              &:focus {
-                border-color: mixins.theme-color($theme, accent-teal);
-                outline: none;
-                box-shadow: 0 0 0 3px rgba(mixins.theme-color($theme, accent-teal), 0.2);
-              }
-            }
-          }
-        }
-        
-        // Hilfetext für Formularfelder
-        .help-text {
-          display: block;
-          margin-top: map.get(vars.$spacing, xxs);
-          font-size: map.get(map.get(vars.$fonts, sizes), small);
-          
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              color: mixins.theme-color($theme, text-tertiary);
-            }
-          }
-        }
-        
-        // Profilavatar
-        &.profile-avatar {
-          display: flex;
-          justify-content: center;
-          margin-bottom: map.get(vars.$spacing, xl);
-          
-          .avatar-preview {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                background-color: mixins.theme-color($theme, secondary-bg);
-                border: 3px solid mixins.theme-color($theme, accent-green);
-              }
-            }
-            
-            .avatar-placeholder {
-              font-size: 3rem;
-              font-weight: map.get(map.get(vars.$fonts, weights), bold);
-              
-              @each $theme in ('light', 'dark') {
-                .theme-#{$theme} & {
-                  color: mixins.theme-color($theme, text-primary);
-                }
-              }
-            }
-            
-            .change-avatar-btn {
-              position: absolute;
-              bottom: -10px;
-              right: -10px;
-              border-radius: 50%;
-              width: 40px;
-              height: 40px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              border: none;
-              cursor: pointer;
-              font-size: 1.2rem;
-              
-              @each $theme in ('light', 'dark') {
-                .theme-#{$theme} & {
-                  background: mixins.theme-gradient($theme, primary);
-                  color: white;
-                  
-                  &:hover {
-                    transform: translateY(-2px);
-                    @include mixins.shadow('small', $theme);
-                  }
-                }
-              }
-              
-              &::before {
-                content: '📷';
-                font-size: 1.2rem;
-              }
-            }
-          }
-        }
-        
-        // Passwort-Stärke
-        .password-strength {
-          margin-top: map.get(vars.$spacing, s);
-          
-          .strength-bar {
-            height: 4px;
-            border-radius: 2px;
-            margin-bottom: map.get(vars.$spacing, xxs);
-            transition: all 0.3s;
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                background-color: mixins.theme-color($theme, border-light);
-              }
-            }
-          }
-          
-          &.weak .strength-bar {
-            width: 30%;
-            background-color: #ff6b6b;
-          }
-          
-          &.medium .strength-bar {
-            width: 60%;
-            background-color: #ffbe3d;
-          }
-          
-          &.strong .strength-bar {
-            width: 100%;
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                background-color: mixins.theme-color($theme, accent-green);
-              }
-            }
-          }
-          
-          .strength-text {
-            font-size: map.get(map.get(vars.$fonts, sizes), small);
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                color: mixins.theme-color($theme, text-tertiary);
-              }
-            }
-          }
-        }
-      }
-      
-      // Formularaktionen
-      .form-actions {
-        display: flex;
-        justify-content: flex-start;
-        gap: map.get(vars.$spacing, m);
-        margin-top: map.get(vars.$spacing, xl);
-        
-        &.right {
-          justify-content: flex-end;
-        }
-        
-        .cancel-button, .save-button {
-          padding: map.get(vars.$spacing, m) map.get(vars.$spacing, xl);
-          border-radius: map.get(map.get(vars.$layout, border-radius), medium);
-          font-weight: map.get(map.get(vars.$fonts, weights), medium);
-          cursor: pointer;
-          border: none;
-          
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              &:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-              }
-            }
-          }
-        }
-        
-        .cancel-button {
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              background-color: mixins.theme-color($theme, secondary-bg);
-              color: mixins.theme-color($theme, text-primary);
-              border: 1px solid mixins.theme-color($theme, border-light);
-            }
-          }
-        }
-        
-        .save-button {
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              background: mixins.theme-gradient($theme, primary);
-              color: white;
-              
-              &:hover:not(:disabled) {
-                transform: translateY(-3px);
-                @include mixins.shadow('medium', $theme);
-              }
-            }
-          }
-        }
-      }
-    }
-    
     // Gefahrenzone (Konto löschen)
     &.danger-zone {
       @each $theme in ('light', 'dark') {
@@ -1014,305 +1084,180 @@ export default defineComponent({
         }
       }
     }
+  }
+  
+  // Profilformular
+  .settings-form {
+    max-width: 800px;
     
-    // Einstellungsraster
-    .settings-form-grid {
-      display: flex;
-      flex-direction: column;
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: map.get(vars.$spacing, l);
-      margin-bottom: map.get(vars.$spacing, xl);
       
-      .setting-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: map.get(vars.$spacing, m);
+      @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .form-group {
+      margin-bottom: map.get(vars.$spacing, l);
+      position: relative;
+      
+      label {
+        display: block;
+        margin-bottom: map.get(vars.$spacing, xs);
+        font-weight: map.get(map.get(vars.$fonts, weights), medium);
         
         @each $theme in ('light', 'dark') {
           .theme-#{$theme} & {
-            border-bottom: 1px solid mixins.theme-color($theme, border-light);
-            
-            &:last-child {
-              border-bottom: none;
-            }
+            color: mixins.theme-color($theme, text-secondary);
           }
         }
         
-        .setting-info {
-          flex: 1;
-          padding-right: map.get(vars.$spacing, l);
-          
-          h4 {
-            margin-bottom: map.get(vars.$spacing, xxs);
-            font-size: map.get(map.get(vars.$fonts, sizes), medium);
-          }
-          
-          p {
-            margin: 0;
-            font-size: map.get(map.get(vars.$fonts, sizes), small);
-          }
-        }
-        
-        // Toggle-Switch
-        .toggle-switch {
-          position: relative;
-          display: inline-block;
-          width: 50px;
-          height: 26px;
-          
-          input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-            
-            &:checked + .toggle-slider {
-              @each $theme in ('light', 'dark') {
-                .theme-#{$theme} & {
-                  background-color: mixins.theme-color($theme, accent-green);
-                }
-              }
-            }
-            
-            &:checked + .toggle-slider:before {
-              transform: translateX(24px);
-            }
-          }
-          
-          .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border-radius: 34px;
-            transition: .4s;
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                background-color: mixins.theme-color($theme, border-medium);
-              }
-            }
-            
-            &:before {
-              position: absolute;
-              content: "";
-              height: 18px;
-              width: 18px;
-              left: 4px;
-              bottom: 4px;
-              border-radius: 50%;
-              transition: .4s;
-              
-              @each $theme in ('light', 'dark') {
-                .theme-#{$theme} & {
-                  background-color: white;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    // Theme-Auswahl
-    .theme-selection {
-      display: flex;
-      gap: map.get(vars.$spacing, l);
-      margin-bottom: map.get(vars.$spacing, xl);
-      
-      @media (max-width: 576px) {
-        flex-direction: column;
-      }
-      
-      .theme-option {
-        flex: 1;
-        cursor: pointer;
-        
-        input[type="radio"] {
-          display: none;
-          
-          &:checked + .theme-preview {
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                border-color: mixins.theme-color($theme, accent-green);
-                box-shadow: 0 0 0 3px rgba(mixins.theme-color($theme, accent-green), 0.3);
-              }
-            }
-          }
-        }
-        
-        .theme-preview {
-          height: 120px;
+        &.readonly-label {
           display: flex;
-          flex-direction: column;
           align-items: center;
-          justify-content: center;
-          border-radius: map.get(map.get(vars.$layout, border-radius), medium);
-          transition: all 0.3s;
+          gap: 8px;
           
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              border: 2px solid mixins.theme-color($theme, border-light);
-            }
-          }
-          
-          &.system-theme {
-            background: linear-gradient(to right, #f8fff9 50%, #0F2419 50%);
-          }
-          
-          &.light-theme {
-            background-color: #f8fff9;
-          }
-          
-          &.dark-theme {
-            background-color: #0F2419;
-          }
-          
-          .theme-icon {
-            font-size: 2rem;
-            margin-bottom: map.get(vars.$spacing, s);
-          }
-          
-          .theme-label {
-            font-size: map.get(map.get(vars.$fonts, sizes), small);
-            font-weight: map.get(map.get(vars.$fonts, weights), bold);
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                color: mixins.theme-color($theme, text-primary);
-              }
-            }
+          .lock-icon {
+            font-size: 12px;
+            opacity: 0.7;
+            cursor: help;
           }
         }
       }
-    }
-    
-    // Schriftgröße-Auswahl
-    .font-size-selection {
-      margin-bottom: map.get(vars.$spacing, xl);
       
-      .font-size-slider {
-        margin-bottom: map.get(vars.$spacing, m);
+      .input-container {
         position: relative;
-        
-        input[type="range"] {
-          width: 100%;
-          height: 4px;
-          -webkit-appearance: none;
-          border-radius: 2px;
-          margin-bottom: map.get(vars.$spacing, m);
-          
-          @each $theme in ('light', 'dark') {
-            .theme-#{$theme} & {
-              background-color: mixins.theme-color($theme, border-light);
-              
-              &::-webkit-slider-thumb {
-                -webkit-appearance: none;
-                appearance: none;
-                width: 16px;
-                height: 16px;
-                border-radius: 50%;
-                background: mixins.theme-color($theme, accent-teal);
-                cursor: pointer;
-              }
-              
-              &::-moz-range-thumb {
-                width: 16px;
-                height: 16px;
-                border-radius: 50%;
-                background: mixins.theme-color($theme, accent-teal);
-                cursor: pointer;
-                border: none;
-              }
-            }
-          }
-        }
-        
-        .font-size-labels {
-          display: flex;
-          justify-content: space-between;
-          
-          span {
-            &:nth-child(1) {
-              font-size: 0.8rem;
-            }
-            &:nth-child(2) {
-              font-size: 0.9rem;
-            }
-            &:nth-child(3) {
-              font-size: 1rem;
-            }
-            &:nth-child(4) {
-              font-size: 1.1rem;
-            }
-            &:nth-child(5) {
-              font-size: 1.2rem;
-            }
-            
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                color: mixins.theme-color($theme, text-tertiary);
-              }
-            }
-          }
-        }
-      }
-      
-      .font-size-preview {
-        padding: map.get(vars.$spacing, m);
-        text-align: center;
         border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+        transition: all 0.3s ease;
         
         @each $theme in ('light', 'dark') {
           .theme-#{$theme} & {
             background-color: mixins.theme-color($theme, secondary-bg);
-            color: mixins.theme-color($theme, text-primary);
             border: 1px solid mixins.theme-color($theme, border-light);
-          }
-        }
-      }
-    }
-    
-    // Cookie-Einstellungen
-    .cookie-settings {
-      margin-top: map.get(vars.$spacing, xl);
-      margin-bottom: map.get(vars.$spacing, l);
-      
-      .cookie-option {
-        margin-bottom: map.get(vars.$spacing, m);
-        
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          margin-bottom: map.get(vars.$spacing, xxs);
-          cursor: pointer;
-          
-          input[type="checkbox"] {
-            margin-right: map.get(vars.$spacing, s);
-            width: 18px;
-            height: 18px;
             
-            &:disabled {
-              opacity: 0.7;
-              cursor: not-allowed;
+            &:focus-within {
+              border-color: mixins.theme-color($theme, accent-teal);
+              box-shadow: 0 0 0 3px rgba(mixins.theme-color($theme, accent-teal), 0.2);
             }
-          }
-          
-          span {
-            font-weight: map.get(map.get(vars.$fonts, weights), medium);
             
-            @each $theme in ('light', 'dark') {
-              .theme-#{$theme} & {
-                color: mixins.theme-color($theme, text-primary);
+            &:not(.readonly):hover {
+              border-color: mixins.theme-color($theme, border-medium);
+            }
+            
+            &.readonly {
+              background-color: mixins.theme-color($theme, tertiary-bg);
+              border: 1px dashed mixins.theme-color($theme, border-medium);
+              opacity: 0.8;
+            }
+            
+            &.error {
+              border-color: #e74c3c;
+              
+              &:focus-within {
+                box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.2);
               }
             }
           }
         }
         
-        p {
-          margin-left: calc(18px + #{map.get(vars.$spacing, s)});
-          margin-bottom: map.get(vars.$spacing, s);
+        input, textarea {
+          width: 100%;
+          border: none;
+          background: transparent;
+          padding: map.get(vars.$spacing, m);
+          border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              color: mixins.theme-color($theme, text-primary);
+            }
+          }
+          
+          &:focus {
+            outline: none;
+            box-shadow: none;
+          }
+        }
+      }
+      
+      .help-text {
+        display: block;
+        margin-top: map.get(vars.$spacing, xxs);
+        font-size: map.get(map.get(vars.$fonts, sizes), small);
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            color: mixins.theme-color($theme, text-tertiary);
+          }
+        }
+        
+        &.error-text {
+          color: #e74c3c;
+        }
+      }
+      
+      .character-count {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        font-size: map.get(map.get(vars.$fonts, sizes), small);
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            color: mixins.theme-color($theme, text-tertiary);
+            
+            &.warning {
+              color: #f39c12;
+            }
+            
+            &.error {
+              color: #e74c3c;
+            }
+          }
+        }
+      }
+      
+      // Passwort-Stärke
+      .password-strength {
+        margin-top: map.get(vars.$spacing, s);
+        
+        .strength-bar {
+          height: 4px;
+          border-radius: 2px;
+          margin-bottom: map.get(vars.$spacing, xxs);
+          transition: all 0.3s;
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              background-color: mixins.theme-color($theme, border-light);
+            }
+          }
+        }
+        
+        &.weak .strength-bar {
+          width: 30%;
+          background-color: #ff6b6b;
+        }
+        
+        &.medium .strength-bar {
+          width: 60%;
+          background-color: #ffbe3d;
+        }
+        
+        &.strong .strength-bar {
+          width: 100%;
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              background-color: mixins.theme-color($theme, accent-green);
+            }
+          }
+        }
+        
+        .strength-text {
           font-size: map.get(map.get(vars.$fonts, sizes), small);
           
           @each $theme in ('light', 'dark') {
@@ -1323,89 +1268,241 @@ export default defineComponent({
         }
       }
     }
+    
+    // Profilavatar
+    .profile-avatar {
+      display: flex;
+      justify-content: center;
+      margin-bottom: map.get(vars.$spacing, xl);
+      
+      .avatar-preview {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            background-color: mixins.theme-color($theme, secondary-bg);
+            border: 3px solid mixins.theme-color($theme, accent-green);
+          }
+        }
+        
+        .avatar-placeholder {
+          font-size: 3rem;
+          font-weight: map.get(map.get(vars.$fonts, weights), bold);
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              color: mixins.theme-color($theme, text-primary);
+            }
+          }
+        }
+        
+        .change-avatar-btn {
+          position: absolute;
+          bottom: -10px;
+          right: -10px;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              background: mixins.theme-gradient($theme, primary);
+              color: white;
+              
+              &:hover {
+                transform: translateY(-2px);
+                @include mixins.shadow('small', $theme);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Formularaktionen
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: map.get(vars.$spacing, m);
+      margin-top: map.get(vars.$spacing, xl);
+      
+      &.right {
+        justify-content: flex-end;
+      }
+      
+      .button-icon {
+        margin-right: map.get(vars.$spacing, xxs);
+      }
+      
+      .cancel-button, .save-button {
+        padding: map.get(vars.$spacing, m) map.get(vars.$spacing, xl);
+        border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+        font-weight: map.get(map.get(vars.$fonts, weights), medium);
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            &:disabled {
+              opacity: 0.5;
+              cursor: not-allowed;
+            }
+          }
+        }
+      }
+      
+      .cancel-button {
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            background-color: mixins.theme-color($theme, secondary-bg);
+            color: mixins.theme-color($theme, text-primary);
+            border: 1px solid mixins.theme-color($theme, border-light);
+            
+            &:hover:not(:disabled) {
+              background-color: mixins.theme-color($theme, hover-color);
+            }
+          }
+        }
+      }
+      
+      .save-button {
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            background: mixins.theme-gradient($theme, primary);
+            color: white;
+            
+            &:hover:not(:disabled) {
+              transform: translateY(-3px);
+              @include mixins.shadow('medium', $theme);
+            }
+          }
+        }
+        
+        .loading-spinner {
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          margin-right: map.get(vars.$spacing, xs);
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          border-top-color: white;
+          animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      }
+    }
   }
   
-  // Modal und Bestätigungsdialog
-  .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+  // Einstellungsraster (für Benachrichtigungen und Datenschutz)
+  .settings-form-grid {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+    flex-direction: column;
+    gap: map.get(vars.$spacing, l);
+    margin-bottom: map.get(vars.$spacing, xl);
     
-    .confirm-dialog {
-      width: 90%;
-      max-width: 500px;
-      padding: map.get(vars.$spacing, xl);
-      border-radius: map.get(map.get(vars.$layout, border-radius), large);
-      position: relative;
-      @include animations.fade-in(0.3s);
+    .setting-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: map.get(vars.$spacing, m);
       
       @each $theme in ('light', 'dark') {
         .theme-#{$theme} & {
-          background-color: mixins.theme-color($theme, card-bg);
-          @include mixins.shadow('large', $theme);
-        }
-      }
-      
-      h3 {
-        font-size: map.get(map.get(vars.$fonts, sizes), xl);
-        margin-bottom: map.get(vars.$spacing, m);
-        
-        @each $theme in ('light', 'dark') {
-          .theme-#{$theme} & {
-            color: mixins.theme-color($theme, text-primary);
-          }
-        }
-      }
-      
-      p {
-        margin-bottom: map.get(vars.$spacing, l);
-        
-        @each $theme in ('light', 'dark') {
-          .theme-#{$theme} & {
-            color: mixins.theme-color($theme, text-secondary);
-          }
-        }
-      }
-      
-      .dialog-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: map.get(vars.$spacing, m);
-        
-        button {
-          padding: map.get(vars.$spacing, s) map.get(vars.$spacing, l);
-          border-radius: map.get(map.get(vars.$layout, border-radius), medium);
-          font-weight: map.get(map.get(vars.$fonts, weights), medium);
-          cursor: pointer;
-          border: none;
+          border-bottom: 1px solid mixins.theme-color($theme, border-light);
           
-          &.cancel-button {
+          &:last-child {
+            border-bottom: none;
+          }
+        }
+      }
+      
+      .setting-info {
+        flex: 1;
+        padding-right: map.get(vars.$spacing, l);
+        
+        h4 {
+          margin-bottom: map.get(vars.$spacing, xxs);
+          font-size: map.get(map.get(vars.$fonts, sizes), medium);
+        }
+        
+        p {
+          margin: 0;
+          font-size: map.get(map.get(vars.$fonts, sizes), small);
+        }
+      }
+      
+      // Toggle-Switch
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 26px;
+        
+        input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+          
+          &:checked + .toggle-slider {
             @each $theme in ('light', 'dark') {
               .theme-#{$theme} & {
-                background-color: mixins.theme-color($theme, secondary-bg);
-                color: mixins.theme-color($theme, text-primary);
-                border: 1px solid mixins.theme-color($theme, border-light);
+                background-color: mixins.theme-color($theme, accent-green);
               }
             }
           }
           
-          &.confirm-button {
+          &:checked + .toggle-slider:before {
+            transform: translateX(24px);
+          }
+        }
+        
+        .toggle-slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          border-radius: 34px;
+          transition: .4s;
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              background-color: mixins.theme-color($theme, border-medium);
+            }
+          }
+          
+          &:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            border-radius: 50%;
+            transition: .4s;
+            
             @each $theme in ('light', 'dark') {
               .theme-#{$theme} & {
-                background: mixins.theme-gradient($theme, primary);
-                color: white;
-                
-                &.danger {
-                  background-color: #ff6b6b;
-                  background-image: none;
-                }
+                background-color: white;
               }
             }
           }
@@ -1413,5 +1510,309 @@ export default defineComponent({
       }
     }
   }
+  
+  // Theme-Auswahl
+  .theme-selection {
+    display: flex;
+    gap: map.get(vars.$spacing, l);
+    margin-bottom: map.get(vars.$spacing, xl);
+    
+    @media (max-width: 576px) {
+      flex-direction: column;
+    }
+    
+    .theme-option {
+      flex: 1;
+      cursor: pointer;
+      
+      input[type="radio"] {
+        display: none;
+        
+        &:checked + .theme-preview {
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              border-color: mixins.theme-color($theme, accent-green);
+              box-shadow: 0 0 0 3px rgba(mixins.theme-color($theme, accent-green), 0.3);
+            }
+          }
+        }
+      }
+      
+      .theme-preview {
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+        transition: all 0.3s;
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            border: 2px solid mixins.theme-color($theme, border-light);
+          }
+        }
+        
+        &.system-theme {
+          background: linear-gradient(to right, #f8fff9 50%, #0F2419 50%);
+        }
+        
+        &.light-theme {
+          background-color: #f8fff9;
+        }
+        
+        &.dark-theme {
+          background-color: #0F2419;
+        }
+        
+        .theme-icon {
+          font-size: 2rem;
+          margin-bottom: map.get(vars.$spacing, s);
+        }
+        
+        .theme-label {
+          display: flex;
+          justify-content: center;
+          width: 150px;
+          font-size: map.get(map.get(vars.$fonts, sizes), small);
+          font-weight: map.get(map.get(vars.$fonts, weights), bold);
+          background-color: rgba(0, 0, 0, 0.267);
+          border-radius: 20px;
+          padding: 0.5rem;
+            @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              color: mixins.theme-color($theme, text-primary);
+            }
+            }
+        }
+      }
+    }
+  }
+  
+  // Schriftgröße-Auswahl
+  .font-size-selection {
+    margin-bottom: map.get(vars.$spacing, xl);
+    
+    .font-size-slider {
+      margin-bottom: map.get(vars.$spacing, m);
+      position: relative;
+      
+      input[type="range"] {
+        width: 100%;
+        height: 4px;
+        -webkit-appearance: none;
+        border-radius: 2px;
+        margin-bottom: map.get(vars.$spacing, m);
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            background-color: mixins.theme-color($theme, border-light);
+            
+            &::-webkit-slider-thumb {
+              -webkit-appearance: none;
+              appearance: none;
+              width: 16px;
+              height: 16px;
+              border-radius: 50%;
+              background: mixins.theme-color($theme, accent-teal);
+              cursor: pointer;
+            }
+            
+            &::-moz-range-thumb {
+              width: 16px;
+              height: 16px;
+              border-radius: 50%;
+              background: mixins.theme-color($theme, accent-teal);
+              cursor: pointer;
+              border: none;
+            }
+          }
+        }
+      }
+      
+      .font-size-labels {
+        display: flex;
+        justify-content: space-between;
+        
+        span {
+          &:nth-child(1) {
+            font-size: 0.8rem;
+          }
+          &:nth-child(2) {
+            font-size: 0.9rem;
+          }
+          &:nth-child(3) {
+            font-size: 1rem;
+          }
+          &:nth-child(4) {
+            font-size: 1.1rem;
+          }
+          &:nth-child(5) {
+            font-size: 1.2rem;
+          }
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              color: mixins.theme-color($theme, text-tertiary);
+            }
+          }
+        }
+      }
+    }
+    
+    .font-size-preview {
+      padding: map.get(vars.$spacing, m);
+      text-align: center;
+      border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+      
+      @each $theme in ('light', 'dark') {
+        .theme-#{$theme} & {
+          background-color: mixins.theme-color($theme, secondary-bg);
+          color: mixins.theme-color($theme, text-primary);
+          border: 1px solid mixins.theme-color($theme, border-light);
+        }
+      }
+    }
+  }
+  
+  // Cookie-Einstellungen
+  .cookie-settings {
+    margin-top: map.get(vars.$spacing, xl);
+    margin-bottom: map.get(vars.$spacing, l);
+    
+    .cookie-option {
+      margin-bottom: map.get(vars.$spacing, m);
+      
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        margin-bottom: map.get(vars.$spacing, xxs);
+        cursor: pointer;
+        
+        input[type="checkbox"] {
+          margin-right: map.get(vars.$spacing, s);
+          width: 18px;
+          height: 18px;
+          
+          &:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+          }
+        }
+        
+        span {
+          font-weight: map.get(map.get(vars.$fonts, weights), medium);
+          
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              color: mixins.theme-color($theme, text-primary);
+            }
+          }
+        }
+      }
+      
+      p {
+        margin-left: calc(18px + #{map.get(vars.$spacing, s)});
+        margin-bottom: map.get(vars.$spacing, s);
+        font-size: map.get(map.get(vars.$fonts, sizes), small);
+        
+        @each $theme in ('light', 'dark') {
+          .theme-#{$theme} & {
+            color: mixins.theme-color($theme, text-tertiary);
+          }
+        }
+      }
+    }
+  }
+  
+/* Fortsetzung des CSS-Codes */
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  
+  .confirm-dialog {
+    width: 90%;
+    max-width: 500px;
+    padding: map.get(vars.$spacing, xl);
+    border-radius: map.get(map.get(vars.$layout, border-radius), large);
+    position: relative;
+    @include animations.fade-in(0.3s);
+    
+    @each $theme in ('light', 'dark') {
+      .theme-#{$theme} & {
+        background-color: mixins.theme-color($theme, card-bg);
+        @include mixins.shadow('large', $theme);
+      }
+    }
+    
+    h3 {
+      font-size: map.get(map.get(vars.$fonts, sizes), xl);
+      margin-bottom: map.get(vars.$spacing, m);
+      
+      @each $theme in ('light', 'dark') {
+        .theme-#{$theme} & {
+          color: mixins.theme-color($theme, text-primary);
+        }
+      }
+    }
+    
+    p {
+      margin-bottom: map.get(vars.$spacing, l);
+      
+      @each $theme in ('light', 'dark') {
+        .theme-#{$theme} & {
+          color: mixins.theme-color($theme, text-secondary);
+        }
+      }
+    }
+    
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: map.get(vars.$spacing, m);
+      
+      button {
+        padding: map.get(vars.$spacing, s) map.get(vars.$spacing, l);
+        border-radius: map.get(map.get(vars.$layout, border-radius), medium);
+        font-weight: map.get(map.get(vars.$fonts, weights), medium);
+        cursor: pointer;
+        border: none;
+        
+        &.cancel-button {
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              background-color: mixins.theme-color($theme, secondary-bg);
+              color: mixins.theme-color($theme, text-primary);
+              border: 1px solid mixins.theme-color($theme, border-light);
+            }
+          }
+        }
+        
+        &.confirm-button {
+          @each $theme in ('light', 'dark') {
+            .theme-#{$theme} & {
+              background: mixins.theme-gradient($theme, primary);
+              color: white;
+              
+              &.danger {
+                background-color: #ff6b6b;
+                background-image: none;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
 }
 </style>
