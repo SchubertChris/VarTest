@@ -1,6 +1,16 @@
+// src/main.ts
 import { createApp } from 'vue'
-import './style.css'
-import './style/base/main.scss' // Import der SCSS-Hauptdatei
+import router from './router'
+import './style/base/main.scss'
+import './style/base/member-area.scss'
 import App from './App.vue'
+import { resetScrollObserver } from './utils/scrollObserver'
 
-createApp(App).mount('#app')
+const app = createApp(App)
+app.use(router)
+app.mount('#app')
+
+// Scroll-Animationen nach jedem Routenwechsel initialisieren
+router.afterEach(() => {
+  resetScrollObserver();
+});

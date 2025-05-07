@@ -1,40 +1,24 @@
+<!-- src/components/layout/AppMain.vue -->
 <template>
-  <main class="app-main container">
-    <HeroSection />
-    <ContentBlocksSection />
-    <QuizSection />
-    <CommunitySection />
-    <SubscriptionSection />
+  <main class="landing-page container">
+    <LandingPage />
   </main>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import HeroSection from '../sections/HeroSection.vue';
-import ContentBlocksSection from '../sections/ContentBlocksSection.vue';
-import QuizSection from '../sections/QuizSection.vue';
-import CommunitySection from '../sections/CommunitySection.vue';
-import SubscriptionSection from '../sections/SubscriptionSection.vue';
+import LandingPage from '../../pages/LandingPage.vue';
 
 export default defineComponent({
   name: 'AppMain',
   components: {
-    HeroSection,
-    ContentBlocksSection,
-    QuizSection,
-    CommunitySection,
-    SubscriptionSection
-  }
+    LandingPage,
+  },
 });
 </script>
 
 <style lang="scss">
 @use '@/style/base/variables' as vars;
 
-.app-main {
-  display: flex;
-  flex-direction: column;
-  gap: map-get(vars.$spacing, xxxl);
-  padding-bottom: map-get(vars.$spacing, xxxl);
-}
+/* Der feste Abstand wurde entfernt, da er jetzt vom Layout-Container übernommen wird */
 </style>

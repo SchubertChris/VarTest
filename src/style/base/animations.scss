@@ -1,3 +1,5 @@
+// src/style/base/animations.scss
+@use 'sass:map';
 @use 'variables' as vars;
 
 // Fade In Animation
@@ -127,7 +129,7 @@
 @mixin scroll-fade-in {
   opacity: 0;
   transform: translateY(30px);
-  transition: opacity map-get(vars.$transitions, very-slow), transform map-get(vars.$transitions, very-slow);
+  transition: opacity map.get(vars.$transitions, very-slow), transform map.get(vars.$transitions, very-slow);
   
   &.visible {
     opacity: 1;
