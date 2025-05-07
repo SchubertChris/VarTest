@@ -4,10 +4,8 @@ import LandingPage from '../pages/LandingPage.vue';
 import LoginRegister from '../pages/LoginRegister.vue';
 import Contact from '../pages/Contact.vue';
 import AppLayout from '../components/layout/AppLayout.vue';
-import ProtectedRoute from '../components/route/ProtectedRoute.vue';
-import MemberArticlesNew from '../pages/member/Dashboard.vue'; // Importiere die neue Komponente
-import { authService } from '@/services/auth.service';
 import Dashboard from '../pages/member/Dashboard.vue';
+import { authService } from '@/services/auth.service';
 
 // Platzhalter für die rechtlichen Seiten
 const PlaceholderPage = {
@@ -56,11 +54,6 @@ const routes: Array<RouteRecordRaw> = [
         component: LoginRegister
       },
       {
-        path: 'dashboard',
-        name: 'Dashboard',
-        component: Dashboard
-      },
-      {
         path: 'contact',
         name: 'Contact',
         component: Contact
@@ -92,31 +85,46 @@ const routes: Array<RouteRecordRaw> = [
     ]
   },
   
-  // Geschützte Routen für eingeloggte Benutzer als eigenständige Route ohne AppLayout
+  // Geschützte Routen für eingeloggte Benutzer
   {
     path: '/member',
     beforeEnter: requireAuth, // Navigation Guard für geschützte Routen
     children: [
       {
         path: 'dashboard',
-        name: 'Dashboard',
-        component: Dashboard
+        name: 'MemberDashboard',
+        component: Dashboard,
+        // Query-Parameter für das Tab (Menüpunkt)
+        props: (route) => ({ 
+          defaultTab: route.query.tab || 'overview' 
+        })
       },
+      // Diese Routen können später durch tatsächliche Komponenten ersetzt werden,
+      // diese werden nun durch das Dashboard mit Tabs abgedeckt
       {
         path: 'profile',
         name: 'UserProfile',
-        component: { 
-          ...PlaceholderPage,
-          props: { title: 'Mein Profil' }
-        }
+        redirect: { name: 'MemberDashboard', query: { tab: 'settings' } }
       },
       {
         path: 'favorites',
         name: 'UserFavorites',
-        component: { 
-          ...PlaceholderPage,
-          props: { title: 'Meine Favoriten' }
-        }
+        redirect: { name: 'MemberDashboard', query: { tab: 'favorites' } }
+      },
+      {
+        path: 'articles',
+        name: 'UserArticles',
+        redirect: { name: 'MemberDashboard', query: { tab: 'my-articles' } }
+      },
+      {
+        path: 'friends',
+        name: 'UserFriends',
+        redirect: { name: 'MemberDashboard', query: { tab: 'friends' } }
+      },
+      {
+        path: 'notifications',
+        name: 'UserNotifications',
+        redirect: { name: 'MemberDashboard', query: { tab: 'notifications' } }
       }
     ]
   },
